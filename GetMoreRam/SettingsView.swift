@@ -19,6 +19,9 @@ struct SettingsView: View {
     private let androidInfo = "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
     private let macInfo = "<MacBookPro18,3> <Mac OS X;14.5;23F79> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
     private let windowsInfo = "<PC> <Windows;10;19045> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
+    @AppStorage("SelectedAppIcon") private var selectedAppIcon = "Default"
+    @State private var iconError: String?
+    private let iconNames = ["Default", "Blue", "Purple", "Green", "Mono", "Glass", "Orbit", "Gradient", "Carbon", "Board"]
     @State var email = ""
     @State var teamId = ""
     @StateObject var viewModel : LoginViewModel
@@ -131,6 +134,29 @@ struct SettingsView: View {
                 Text("Authentication Identity")
             } footer: {
                 Text("Overrides the Client-Info and User-Agent used by remote V3 provisioning. On-device ODA supplies its own identity; these fields do not override SideSign's authentication headers.")
+            }
+
+            Section {
+                Picker("App Icon", selection: $selectedAppIcon) {
+                    ForEach(iconNames, id: \.self) { name in
+                        Label(name, systemImage: "memorychip").tag(name)
+                    }
+                }
+                .onChange(of: selectedAppIcon) { _, choice in
+                    UIApplication.shared.setAlternateIconName(choice == "Default" ? nil : choice) { error in
+                        if let error {
+                            iconError = error.localizedDescription
+                            selectedAppIcon = UIApplication.shared.alternateIconName ?? "Default"
+                        }
+                    }
+                }
+                if let iconError {
+                    Text(iconError).foregroundStyle(.red).font(.footnote)
+                }
+            } header: {
+                Text("Appearance")
+            } footer: {
+                Text("Changes the actual Home Screen icon using iOS alternate icons. The icon may require iOS confirmation.")
             }
 
             Section {

@@ -32,20 +32,7 @@ struct ContentView: View {
             AppIDView(viewModel: appIDs)
                 .tabItem { Label("App IDs", systemImage: "square.stack.3d.up.fill") }.tag(1)
 
-            NavigationStack {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Increased Memory Limit").font(.title2.bold())
-                    Text("Choose an App ID to request Apple's Increased Memory Limit capability.")
-                        .foregroundStyle(.secondary)
-                    Button("Select App ID") { selectedTab = 1 }
-                        .buttonStyle(.borderedProminent)
-                    Text("A successful request does not modify the installed app. Re-sign and reinstall with SideStore to obtain updated entitlements.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                    Spacer()
-                }
-                .padding()
-                .navigationTitle("Memory")
-            }
+            MemoryCapabilityView(viewModel: appIDs)
             .tabItem { Label("Memory", systemImage: "memorychip") }.tag(2)
 
             NavigationStack {
@@ -75,5 +62,74 @@ private struct AccountOverview: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+private struct MemoryCapabilityView: View {
+    @ObservedObject var viewModel: AppIDViewModel
+    @State private var search = ""
+    @State private var loading = false
+    @State private var error: String?
+
+    private var matches: [AppIDModel] {
+        let q = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        return q.isEmpty ? viewModel.appIDs : viewModel.appIDs.filter {
+            $0.bundleID.localizedStandardContains(q) || $0.appID.name.localizedStandardContains(q)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text("Request Apple's Increased Memory Limit capability for a developer App ID. This is not an adjustable RAM allocation.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section("Choose App ID") {
+                    if viewModel.appIDs.isEmpty {
+                        Text("Sign in and load App IDs to select a target.")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(matches, id: \.self) { app in
+                        NavigationLink {
+                            AppIDEditView(viewModel: app)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(app.appID.name)
+                                Text(app.bundleID).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                Section {
+                    Text("After enabling, re-sign and reinstall the target IPA with SideStore. The request response alone does not verify the installed provisioning profile.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            .searchable(text: $search, prompt: "App name or bundle ID")
+            .navigationTitle("Memory")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task {
+                            loading = true
+                            defer { loading = false }
+                            do { try await viewModel.fetchAppIDs() }
+                            catch { self.error = error.localizedDescription }
+                        }
+                    } label: {
+                        if loading { ProgressView() }
+                        else { Image(systemName: "arrow.clockwise") }
+                    }
+                    .disabled(loading)
+                }
+            }
+            .alert("Unable to load App IDs", isPresented: Binding(
+                get: { error != nil },
+                set: { if !$0 { error = nil } }
+            )) { Button("OK", role: .cancel) { error = nil } }
+                message: { Text(error ?? "") }
+        }
     }
 }
