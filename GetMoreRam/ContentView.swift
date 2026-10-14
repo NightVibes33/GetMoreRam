@@ -263,7 +263,7 @@ private struct MemoryCapabilityView: View {
                     loading = true
                     defer { loading = false }
                     do { try await viewModel.fetchAppIDs() }
-                    catch { error = error.localizedDescription }
+                    catch { self.error = error.localizedDescription }
                 }
             }
             .alert("Unable to load applications", isPresented: Binding(
