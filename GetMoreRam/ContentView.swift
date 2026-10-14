@@ -3,7 +3,18 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var appIDs = AppIDViewModel()
     @StateObject private var login = LoginViewModel()
-    @State private var selectedTab = 0
+    @State private var selectedTab: Int
+
+    init() {
+        #if DEBUG
+        let requested = ProcessInfo.processInfo.arguments
+            .first(where: { $0.hasPrefix("-UITestTab=") })
+            .flatMap { Int($0.replacingOccurrences(of: "-UITestTab=", with: "")) }
+        _selectedTab = State(initialValue: min(max(requested ?? 0, 0), 3))
+        #else
+        _selectedTab = State(initialValue: 0)
+        #endif
+    }
     @AppStorage("AppearancePreference") private var appearancePreference = "System"
     @AppStorage("SelectedAppIcon") private var selectedAppIcon = "Default"
 

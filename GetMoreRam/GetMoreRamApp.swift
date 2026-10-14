@@ -13,6 +13,11 @@ struct GetMoreRamApp: App {
         WindowGroup {
             ContentView()
                 .task {
+                    #if DEBUG
+                    if ProcessInfo.processInfo.arguments.contains("-UITestScreenshot") {
+                        return
+                    }
+                    #endif
                     await DataManager.shared.model.restoreSavedSession()
                 }
         }
