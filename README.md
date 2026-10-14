@@ -49,3 +49,7 @@ The nine alternate icon names in the iOS asset catalog are `Blue`, `Purple`, `Gr
 ## Actual alternate app icons
 
 The ten alternate icon choices are real iOS app icons, not decorative UI placeholders. `scripts/import_icon_artwork.py` crops the 10 original supplied designs into separately registered 1024×1024 `.appiconset` assets (Default, Blue Neon, Purple, Green, Monochrome, Glass, Orbit, Gradient, Carbon, Board), along with 256×256 `.imageset` previews. Xcode's alternate app icon asset settings register nine alternatives. Settings → Appearance → App Icon calls `UIApplication.setAlternateIconName`, waits for iOS confirmation, and reflects `UIApplication.alternateIconName`. The assets are committed into the repo so later builds do not depend on the original upload link.
+
+### Build asset source of truth
+
+The ten image files committed under `GetMoreRam/Assets.xcassets` come from the exact user-supplied icon artwork. CI **does not regenerate or replace them with programmatically drawn substitutes**. Every release checks both 1024×1024 icon artwork and its associated Settings preview, and verifies that iOS registers all nine alternate icons. `scripts/generate_app_icons.swift` is a historical prototype and is not used to create shipping icons.

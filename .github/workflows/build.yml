@@ -41,15 +41,28 @@ jobs:
           sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
           echo "iOS SDK: $sdk"
           [[ "$sdk" == 27* ]]
-      - name: Generate app icon assets and appearance previews
+      - name: Verify all ten supplied Xcode icon assets and previews
         shell: bash
         run: |
           set -euo pipefail
-          swift scripts/generate_app_icons.swift
-          for name in AppIcon Blue Purple Green Mono Glass Orbit Gradient Carbon Board; do
-            test -f "GetMoreRam/Assets.xcassets/$name.appiconset/icon.png"
-            test -f "GetMoreRam/Assets.xcassets/$name.appiconset/Contents.json"
-          done
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, struct
+          root = Path("GetMoreRam/Assets.xcassets")
+          names = ("Default","Blue","Purple","Green","Mono","Glass","Orbit","Gradient","Carbon","Board")
+          for name in names:
+              base = root / ("AppIcon.appiconset" if name == "Default" else name + ".appiconset")
+              png = base / (name + ".png")
+              info = json.loads((base / "Contents.json").read_text())
+              assert info["images"][0]["filename"] == name + ".png"
+              raw = png.read_bytes()
+              assert raw[:8] == b"\\x89PNG\\r\\n\\x1a\\n"
+              assert struct.unpack(">II",raw[16:24]) == (1024,1024), name
+              preview = root / ("IconPreview-" + name + ".imageset") / (name + ".png")
+              preview_bytes = preview.read_bytes()
+              assert struct.unpack(">II",preview_bytes[16:24]) == (256,256), name
+          print("Validated ten supplied 1024px icon artworks and matching Settings previews.")
+          PY
       - name: Resolve Swift dependencies
         shell: bash
         run: |
