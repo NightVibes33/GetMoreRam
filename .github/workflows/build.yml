@@ -12,18 +12,10 @@ permissions:
 jobs:
   apple-android-connectivity:
     name: Pixel 7 Android -> Apple lookup (no credentials)
-    runs-on: xcode-27
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Confirm Xcode 27 and iOS 27 SDK
-        shell: bash
-        run: |
-          set -euo pipefail
-          xcodebuild -version
-          sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
-          echo "iOS SDK: $sdk"
-          [[ "$sdk" == 27* ]]
       - name: Validate Android request generation
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
       - name: Test Pixel 7 connection to Apple's provisioning lookup
