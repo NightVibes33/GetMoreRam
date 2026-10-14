@@ -356,7 +356,19 @@ final class AnisetteDataHelper
     
     // MARK: - V3: FETCHING
     
+    private var lastIdentityFingerprint = ""
+
     func fetchClientInfo() async throws {
+        let defaults = UserDefaults.standard
+        let configurationFingerprint = [
+            defaults.string(forKey: "CustomClientInfo") ?? "",
+            defaults.string(forKey: "CustomUserAgent") ?? ""
+        ].joined(separator: "\u{0}")
+        if configurationFingerprint != lastIdentityFingerprint {
+            self.clientInfo = nil
+            self.userAgent = nil
+            lastIdentityFingerprint = configurationFingerprint
+        }
         if  self.clientInfo != nil &&
                 self.userAgent != nil &&
                 self.mdLu != nil &&
@@ -368,8 +380,15 @@ final class AnisetteDataHelper
         
         self.printOut("Using custom client_info")
                         
-        self.clientInfo = "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
-        self.userAgent = "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
+        let defaults = UserDefaults.standard
+        let configuredClientInfo = defaults.string(forKey: "CustomClientInfo")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let configuredUserAgent = defaults.string(forKey: "CustomUserAgent")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        self.clientInfo = (configuredClientInfo?.isEmpty == false)
+            ? configuredClientInfo! : "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
+        self.userAgent = (configuredUserAgent?.isEmpty == false)
+            ? configuredUserAgent! : "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
         self.printOut("Client-Info: \(self.clientInfo!)")
         self.printOut("User-Agent: \(self.userAgent!)")
         

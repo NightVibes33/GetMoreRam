@@ -13,6 +13,12 @@ import StosSign_Common
 
 struct SettingsView: View {
 
+    @AppStorage("CustomClientInfo") private var customClientInfo = ""
+    @AppStorage("CustomUserAgent") private var customUserAgent = ""
+    @State private var identityPreset = "Custom"
+    private let androidInfo = "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
+    private let macInfo = "<MacBookPro18,3> <Mac OS X;14.5;23F79> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
+    private let windowsInfo = "<PC> <Windows;10;19045> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
     @State var email = ""
     @State var teamId = ""
     @StateObject var viewModel : LoginViewModel
@@ -90,6 +96,44 @@ struct SettingsView: View {
             }
 
             Section {
+                Picker("Identity Preset", selection: $identityPreset) {
+                    Text("Custom").tag("Custom")
+                    Text("Android").tag("Android")
+                    Text("macOS").tag("macOS")
+                    Text("Windows").tag("Windows")
+                }
+                .onChange(of: identityPreset) { _, selection in
+                    switch selection {
+                    case "Android":
+                        customClientInfo = androidInfo
+                        customUserAgent = "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
+                    case "macOS":
+                        customClientInfo = macInfo
+                        customUserAgent = "AuthKit/1 (Macintosh; OS X 14.5) (com.apple.akd/1.0)"
+                    case "Windows":
+                        customClientInfo = windowsInfo
+                        customUserAgent = "AuthKit/1 (Windows; 10.0) (com.apple.akd/1.0)"
+                    default: break
+                    }
+                }
+                TextField("Client-Info (Apple header)", text: $customClientInfo, axis: .vertical)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                TextField("User-Agent", text: $customUserAgent, axis: .vertical)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Reset to defaults") {
+                    customClientInfo = ""
+                    customUserAgent = ""
+                    identityPreset = "Custom"
+                }
+            } header: {
+                Text("Authentication Identity")
+            } footer: {
+                Text("Overrides the Client-Info and User-Agent used by remote V3 provisioning. On-device ODA supplies its own identity; these fields do not override SideSign's authentication headers.")
+            }
+
+            Section {
                 LabeledContent("App Version", value: appVersionLabel)
                 LabeledContent("Anisette Mode", value: sharedModel.useOnDeviceAnisette ? "On-device ODA" : "Remote V3")
             } header: {
@@ -153,8 +197,8 @@ struct SettingsView: View {
                     Text("Password")
                 }
                 Section {
-                    LabeledContent("Client-Info", value: "Pixel 7 · Android 14")
-                    LabeledContent("User-Agent", value: "AuthKit · macOS 26.6")
+                    LabeledContent("Client-Info", value: customClientInfo.isEmpty ? "Default" : customClientInfo)
+                    LabeledContent("User-Agent", value: customUserAgent.isEmpty ? "Default" : customUserAgent)
                 } header: {
                     Text("Authentication identity")
                 }
