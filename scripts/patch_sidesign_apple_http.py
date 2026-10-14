@@ -25,7 +25,7 @@ enum GetMoreRamAppleTransientHTTP {
             if [502, 503, 504].contains(status) {
                 if retrySafe && retries < 2 {
                     retries += 1
-                    try await Task.sleep(for: .milliseconds(600 * retries))
+                    try await Task.sleep(nanoseconds: UInt64(600_000_000 * retries))
                     continue
                 }
                 throw NSError(
