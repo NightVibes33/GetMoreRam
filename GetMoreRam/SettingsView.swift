@@ -25,6 +25,13 @@ struct SettingsView: View {
     @State private var isImportingSideStoreAccount = false
     
 
+    private var appVersionLabel: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let build = info?["CFBundleVersion"] as? String ?? "Unknown"
+        return "\(version) (\(build))"
+    }
+
     var body: some View {
         Form {
 
@@ -80,6 +87,13 @@ struct SettingsView: View {
                 } footer: {
                     Text("Remote anisette V3 fallback. This server is only used when on-device Anisette is disabled.")
                 }
+            }
+
+            Section {
+                LabeledContent("App Version", value: appVersionLabel)
+                LabeledContent("Anisette Mode", value: sharedModel.useOnDeviceAnisette ? "On-device ODA" : "Remote V3")
+            } header: {
+                Text("Build Information")
             }
 
             Section {

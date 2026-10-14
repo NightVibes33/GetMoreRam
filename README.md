@@ -35,3 +35,9 @@ The Actions build validates the packaged IPA's `MinimumOSVersion=18.0` and uses 
 - GetMoreRam still uses **SideSign for Apple login and trusted-device/SMS/voice 2FA**, and **StosSign for developer App ID and Increased Memory Limit APIs**.
 - In **Settings → On-device Anisette**, switch the toggle **off** to use the configured remote Anisette V3 server. No automatic remote fallback sends provisioning data when the local ODA path fails.
 - Real Apple sign-in and ODA library compatibility on each iOS version still require on-device verification.
+
+## Confirm you installed the new IPA
+
+GetMoreRam **v1.1 (build 2)** adds the On-device Anisette switch and a **Settings → Build Information** section showing the installed app version and Anisette mode. Earlier builds (including v1.0 build 1) do not have these controls.
+
+**Install the newly downloaded IPA using SideStore's IPA import/install process, not just Refresh on the existing app.** Refresh re-signs an already installed app; it does not import new source code. Sign/install this IPA with the same Apple account as before, then open Settings and verify `App Version = 1.1 (2)` and `Anisette Mode = On-device ODA`. Do not use Clean Up Keychain to force an update.
