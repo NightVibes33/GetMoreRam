@@ -79,7 +79,7 @@ jobs:
           path: ${{ env.archive_path }}.xcarchive.tar
 
   package:
-    name: Create fake-signed ipa
+    name: Create unsigned IPA
     runs-on: ubuntu-latest
     needs: [build]
     env:
@@ -95,21 +95,7 @@ jobs:
           name: ${{ env.archive_path }}.xcarchive.tar
       - name: Extract Build Artifact
         run: tar -xf "$archive_path.xcarchive.tar"
-      - name: Install ldid
-        run: |
-          if [ `uname -s` = "Linux" ]; then
-            curl -sSL -o /usr/local/bin/ldid "${{ github.server_url }}/ProcursusTeam/ldid/releases/latest/download/ldid_linux_`uname -m`"
-            chmod +x /usr/local/bin/ldid
-          elif [ `uname -s` = "Darwin" ]; then
-            brew install ldid
-          else
-            exit 1
-          fi
-      - name: Fakesign
-        run: |
-          find "$archive_path.xcarchive/Products/Applications/$scheme.app" -type d -path '*/Frameworks/*.framework' -exec ldid -S \{\} \;
-          ldid -S "$archive_path.xcarchive/Products/Applications/$scheme.app"
-      - name: Create IPA
+      - name: Create unsigned IPA
         run: |
           mv "$archive_path.xcarchive/Products/Applications" Payload
           zip -r "$scheme.ipa" "Payload" -x "._*" -x ".DS_Store" -x "__MACOSX"
