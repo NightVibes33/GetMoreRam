@@ -23,7 +23,6 @@ struct SettingsView: View {
     @State private var importResultShow = false
     @State private var importResultInfo = ""
     @State private var isImportingSideStoreAccount = false
-    @AppStorage("GetMoreRam.authProfile") private var authProfile = "android"
     
 
     var body: some View {
@@ -120,17 +119,10 @@ struct SettingsView: View {
                     Text("Password")
                 }
                 Section {
-                    Picker("Apple authentication identity", selection: $authProfile) {
-                        Text("Pixel 7 · Android 14").tag("android")
-                        Text("macOS compatibility").tag("mac")
-                    }
-                    .disabled(viewModel.isLoginInProgress)
-                    .onChange(of: authProfile) { _, _ in
-                        AnisetteDataHelper.shared.resetClientInfo()
-                        viewModel.loginError = nil
-                    }
-                } footer: {
-                    Text("Android is the default. If Apple rejects it before 2FA, try macOS compatibility.")
+                    LabeledContent("Client-Info", value: "Pixel 7 · Android 14")
+                    LabeledContent("User-Agent", value: "AuthKit · macOS 26.6")
+                } header: {
+                    Text("Authentication identity")
                 }
                 if viewModel.needVerificationCode {
                     Section {
@@ -249,7 +241,7 @@ struct SettingsView: View {
             if let appleError = error as? AppleAPIError,
                case .customError(let code, _) = appleError,
                code == -22411 {
-                viewModel.loginError = "Apple rejected this request before a usable 2FA session was available (-22411). The verification code cannot be submitted until Apple accepts this stage. You can try macOS compatibility mode or retry later.\n\n" + error.detailedDescription
+                viewModel.loginError = "Apple rejected this request before a usable 2FA session was available (-22411). The verification code cannot be submitted until Apple accepts this stage. Retry later or import a working SideStore account.\n\n" + error.detailedDescription
             } else {
                 viewModel.loginError = error.detailedDescription
             }

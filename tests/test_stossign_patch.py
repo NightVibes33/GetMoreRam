@@ -14,8 +14,7 @@ class StosSignPatchTests(unittest.TestCase):
                 let localizedDescription = "\(errorDescription) (\(errorCode))"
         '''
         patched = patch_source(source)
-        self.assertIn('anisetteData.deviceDescription.hasPrefix("<Pixel 7> ")', patched)
-        self.assertIn("Linux; Android 14; Pixel 7", patched)
+        self.assertEqual(patched.count('AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)'), 2)
         self.assertIn("[GSA stage:", patched)
         self.assertNotIn('"User-Agent": "Xcode",', patched)
 

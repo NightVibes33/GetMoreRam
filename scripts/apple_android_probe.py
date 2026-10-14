@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 ENDPOINT = "https://gsa.apple.com/grandslam/GsService2/lookup"
 CLIENT_INFO = "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
-USER_AGENT = "AuthKit/1 (Linux; Android 14; Pixel 7) (com.apple.akd/1.0)"
+USER_AGENT = "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
 
 
 def build_request(device_identifier=None):

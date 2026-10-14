@@ -10,7 +10,7 @@ from scripts.apple_android_probe import (
 class AndroidAppleProbeTests(unittest.TestCase):
     def test_exact_pixel_7_client_info(self):
         self.assertEqual(CLIENT_INFO, "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>")
-        self.assertIn("Android 14", USER_AGENT)
+        self.assertEqual(USER_AGENT, "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)")
 
     def test_request_uses_consistent_ephemeral_device_identifier(self):
         identifier = uuid.UUID("12345678-1234-5678-1234-567812345678")

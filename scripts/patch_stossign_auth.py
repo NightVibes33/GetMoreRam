@@ -6,13 +6,7 @@ This only changes the temporary copy in the Xcode Actions runner.
 import pathlib
 import sys
 
-ANDROID_USER_AGENT = "AuthKit/1 (Linux; Android 14; Pixel 7) (com.apple.akd/1.0)"
-MAC_USER_AGENT = "AuthKit/1 (Macintosh; OS X 27.0) (com.apple.akd/1.0)"
-
-USER_AGENT_EXPRESSION = (
-    'anisetteData.deviceDescription.hasPrefix("<Pixel 7> ")'
-    f' ? "{ANDROID_USER_AGENT}" : "{MAC_USER_AGENT}"'
-)
+USER_AGENT = "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
 
 
 def replace_exact(source: str, old: str, new: str, label: str) -> str:
@@ -27,7 +21,7 @@ def patch_source(source: str) -> str:
     source = replace_exact(
         source,
         '"User-Agent": "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.dt.Xcode/26.0)",',
-        '"User-Agent": ' + USER_AGENT_EXPRESSION + ',',
+        '"User-Agent": "' + USER_AGENT + '",',
         "GrandSlam User-Agent",
     )
 
@@ -35,7 +29,7 @@ def patch_source(source: str) -> str:
     source = replace_exact(
         source,
         '"User-Agent": "Xcode",',
-        '"User-Agent": ' + USER_AGENT_EXPRESSION + ',',
+        '"User-Agent": "' + USER_AGENT + '",',
         "2FA User-Agent",
     )
 
@@ -58,8 +52,9 @@ def main() -> None:
     path = pathlib.Path(sys.argv[1])
     source = path.read_text(encoding="utf-8")
     patched = patch_source(source)
+    path.chmod(path.stat().st_mode | 0o200)
     path.write_text(patched, encoding="utf-8")
-    print("StosSign GSA and 2FA identity headers aligned to selected anisette profile.")
+    print("StosSign GSA and 2FA User-Agent set to AuthKit macOS 26.6; Pixel 7 Client-Info comes from anisette.")
     print("Apple authentication errors now contain the failing GSA stage; no tokens printed.")
 
 
