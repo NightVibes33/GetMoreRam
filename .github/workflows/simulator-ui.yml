@@ -63,16 +63,20 @@ jobs:
           xcrun simctl ui "$SIMULATOR_UDID" appearance dark
           xcrun simctl status_bar "$SIMULATOR_UDID" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100 || true
           mkdir -p simulator-screenshots
-          names=(Home AppIDs Memory Settings)
-          for i in 0 1 2 3; do
+          names=(Home AppIDs Memory Settings ClientInfo IconPicker)
+          for i in 0 1 2 3 4 5; do
             xcrun simctl terminate "$SIMULATOR_UDID" "$bundle" >/dev/null 2>&1 || true
-            xcrun simctl launch "$SIMULATOR_UDID" "$bundle" -UITestScreenshot "-UITestTab=$i"
+            args=(-UITestScreenshot)
+            if (( i >= 4 )); then args+=("-UITestTab=3"); else args+=("-UITestTab=$i"); fi
+            if (( i == 4 )); then args+=("-UITestClientIdentity"); fi
+            if (( i == 5 )); then args+=("-UITestIconPicker"); fi
+            xcrun simctl launch "$SIMULATOR_UDID" "$bundle" "${args[@]}"
             sleep 5
             image="simulator-screenshots/$((i+1))-${names[$i]}.png"
             xcrun simctl io "$SIMULATOR_UDID" screenshot "$image"
             test -s "$image"
           done
-          test "$(find simulator-screenshots -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" -eq 4
+          test "$(find simulator-screenshots -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" -eq 6
 
       - name: Upload real simulator screenshots
         if: always()

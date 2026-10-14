@@ -34,6 +34,8 @@ struct SettingsView: View {
     @State private var importResultShow = false
     @State private var importResultInfo = ""
     @State private var isImportingSideStoreAccount = false
+    @State private var simulatorClientInfoRoute = false
+    @State private var simulatorIconPickerRoute = false
     
 
     private var appVersionLabel: String {
@@ -82,10 +84,11 @@ struct SettingsView: View {
             }
             
             Section {
+                Toggle("On-device Anisette", isOn: $useOnDeviceAnisette)
                 NavigationLink {
                     anisetteSettings
                 } label: {
-                    Label("Anisette", systemImage: "network")
+                    Label("Anisette Options", systemImage: "network")
                 }
                 NavigationLink {
                     identitySettings
@@ -166,15 +169,27 @@ struct SettingsView: View {
         .sheet(isPresented: $viewModel.teamSelectionShow) {
             teamSelectionView
         }
-        .onAppear { selectedAppIcon = UIApplication.shared.alternateIconName ?? "Default" }
+        .navigationDestination(isPresented: $simulatorClientInfoRoute) {
+            identitySettings
+        }
+        .navigationDestination(isPresented: $simulatorIconPickerRoute) {
+            IconAppearanceView()
+        }
+        .onAppear {
+            selectedAppIcon = UIApplication.shared.alternateIconName ?? "Default"
+            #if DEBUG
+            simulatorClientInfoRoute = ProcessInfo.processInfo.arguments.contains("-UITestClientIdentity")
+            simulatorIconPickerRoute = ProcessInfo.processInfo.arguments.contains("-UITestIconPicker")
+            #endif
+        }
     }
     
     private var anisetteSettings: some View {
         Form {
             Section {
-                Toggle("On-device Anisette", isOn: $useOnDeviceAnisette)
+                LabeledContent("Anisette Mode", value: useOnDeviceAnisette ? "On-device ODA" : "Remote V3")
             } footer: {
-                Text("Generates anisette locally using SideStore’s ODA engine. On first use, the ODA runtime is downloaded and cached. Turn this off to use the remote V3 server below.")
+                Text("The On-device Anisette switch is on the main Settings screen. ODA runtime downloads automatically when first needed.")
             }
 
             if !useOnDeviceAnisette {

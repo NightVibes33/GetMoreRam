@@ -53,3 +53,8 @@ The ten alternate icon choices are real iOS app icons, not decorative UI placeho
 ### Build asset source of truth
 
 The ten image files committed under `GetMoreRam/Assets.xcassets` come from the exact user-supplied icon artwork. CI **does not regenerate or replace them with programmatically drawn substitutes**. Every release checks both 1024×1024 icon artwork and its associated Settings preview, and verifies that iOS registers all nine alternate icons. `scripts/generate_app_icons.swift` is a historical prototype and is not used to create shipping icons.
+
+
+## Simulator UI audit
+
+The `iPhone Simulator Screenshot Audit` workflow builds and launches the real Debug app using an Xcode 27 runner, then captures six screens: Home, App IDs, Memory, Settings, Client Identity and App Icon picker. Debug-only launch arguments select the genuine UI routes and skip saved-session network restoration for screenshots. No sample App IDs, entitlement results, login status or RAM figures are inserted. The separate unsigned IPA workflow still verifies the iOS 18.0 minimum and bundled alternate icons.
