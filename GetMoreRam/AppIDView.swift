@@ -17,7 +17,11 @@ struct AppIDEditView : View {
         Form {
             Section {
                 HStack(spacing: 13) {
-                    AppArtworkIconView(bundleID: viewModel.bundleID, name: viewModel.appID.name, size: 52)
+                    Image(systemName: "memorychip")
+                        .font(.system(size: 28, weight: .medium))
+                        .foregroundStyle(.purple)
+                        .frame(width: 52, height: 52)
+                        .background(.purple.opacity(0.15), in: RoundedRectangle(cornerRadius: 14))
                     VStack(alignment: .leading, spacing: 4) {
                         Text(viewModel.appID.name).font(.headline)
                         Text(viewModel.bundleID)

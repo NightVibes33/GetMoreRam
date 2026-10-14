@@ -3,7 +3,6 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var appIDs = AppIDViewModel()
     @StateObject private var login = LoginViewModel()
-    @StateObject private var artwork = AppIconArtworkStore()
     @State private var selectedTab: Int
 
     init() {
@@ -44,7 +43,6 @@ struct ContentView: View {
             .tabItem { Label("Settings", systemImage: "gearshape.fill") }.tag(2)
         }
         .environmentObject(DataManager.shared.model)
-        .environmentObject(artwork)
         .preferredColorScheme(preferredAppearance)
     }
 }
@@ -202,8 +200,6 @@ private struct MemoryCapabilityView: View {
     @State private var search = ""
     @State private var loading = false
     @State private var error: String?
-    @AppStorage("SideloadIconSourceURLs") private var iconSources = AppIconArtworkStore.defaultSources
-    @EnvironmentObject private var artwork: AppIconArtworkStore
     @EnvironmentObject private var account: SharedModel
 
     private var matches: [AppIDModel] {
@@ -232,24 +228,12 @@ private struct MemoryCapabilityView: View {
                         NavigationLink {
                             AppIDEditView(viewModel: app)
                         } label: {
-                            HStack(spacing: 12) {
-                                AppArtworkIconView(bundleID: app.bundleID, name: app.appID.name, size: 44)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(app.appID.name)
-                                    Text(app.bundleID).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                                }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(app.appID.name)
+                                Text(app.bundleID).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                             }
                         }
                     }
-                }
-                Section {
-                    HStack(spacing: 8) {
-                        Image(systemName: "photo.stack")
-                        Text(artwork.status).font(.footnote)
-                    }
-                    .foregroundStyle(.secondary)
-                } footer: {
-                    Text("Original sideload-source artwork is automatically matched by bundle ID. No App Store lookup or installed-app scan.")
                 }
                 Section {
                     Text("After enabling, re-sign and reinstall the target IPA with SideStore. The request response alone does not verify the installed provisioning profile.")
@@ -274,14 +258,13 @@ private struct MemoryCapabilityView: View {
                     .disabled(loading)
                 }
             }
-            .task(id: viewModel.appIDs.map(\.bundleID).sorted().joined(separator: "|") + "|" + iconSources) {
+            .task {
                 if account.isLogin && viewModel.appIDs.isEmpty && !loading {
                     loading = true
                     defer { loading = false }
                     do { try await viewModel.fetchAppIDs() }
                     catch { error = error.localizedDescription }
                 }
-                await artwork.refresh(bundleIDs: viewModel.appIDs.map(\.bundleID), sources: iconSources)
             }
             .alert("Unable to load applications", isPresented: Binding(
                 get: { error != nil },

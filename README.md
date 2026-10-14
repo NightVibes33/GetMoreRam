@@ -55,12 +55,6 @@ The ten alternate icon choices are real iOS app icons, not decorative UI placeho
 The ten image files committed under `GetMoreRam/Assets.xcassets` come from the exact user-supplied icon artwork. CI **does not regenerate or replace them with programmatically drawn substitutes**. Every release checks both 1024×1024 icon artwork and its associated Settings preview, and verifies that iOS registers all nine alternate icons. `scripts/generate_app_icons.swift` is a historical prototype and is not used to create shipping icons.
 
 
-## Automatic sideloaded app icons
-
-Memory automatically matches application bundle IDs against SideStore's official and community JSON catalogs and downloads their published `iconURL` artwork. This is **not** an App Store API lookup, nor does it enumerate locally installed apps. Matching icons are cached in GetMoreRam's application support directory and persist across launches. You can add other SideStore/AltStore JSON catalog URLs in **Settings → Sideload App Icons**; retrieval then happens automatically with no image importing.
-
-An Apple Developer App ID record contains an app name and bundle ID, **not** the original icon. An app that is not listed in any accessible sideload catalog cannot have its real artwork inferred from that record alone; it receives a neutral initials tile, not fabricated artwork. Exact bundle ID matches prevent displaying an unrelated icon. Only remote catalog feeds and matching image URLs are fetched, never full IPA archives.
-
 ## Simulator UI audit
 
 The `iPhone Simulator Screenshot Audit` workflow builds and launches the real Debug app using an Xcode 27 runner, then captures five screens: Home, Memory, Settings, Client Identity and App Icon picker. Debug-only launch arguments select the genuine UI routes and skip saved-session network restoration for screenshots. No sample App IDs, entitlement results, login status or RAM figures are inserted. The separate unsigned IPA workflow still verifies the iOS 18.0 minimum and bundled alternate icons.

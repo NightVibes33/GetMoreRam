@@ -99,11 +99,6 @@ struct SettingsView: View {
 
             Section {
                 NavigationLink {
-                    SideloadIconSourcesView()
-                } label: {
-                    Label("Sideload App Icons", systemImage: "square.stack")
-                }
-                NavigationLink {
                     IconAppearanceView()
                 } label: {
                     HStack {
