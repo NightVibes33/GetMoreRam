@@ -35,6 +35,7 @@ jobs:
           set -euo pipefail
           python3 scripts/patch_stossign_auth.py "$RUNNER_TEMP/SourcePackages/checkouts/StosSign/Sources/StosSign_Auth/Authentication.swift"
           python3 scripts/patch_stossign_api_response.py "$RUNNER_TEMP/SourcePackages/checkouts/StosSign/Sources/StosSign_API/AppleAPI.swift"
+          python3 scripts/patch_sidesign_apple_http.py "$RUNNER_TEMP/SourcePackages/checkouts/SideSign/Sources/DeveloperPortal/Authentication.swift" "$RUNNER_TEMP/SourcePackages/checkouts/SideSign/Sources/DeveloperPortal/DeveloperPortalAPI.swift"
 
       - name: Build actual iPhone Simulator app
         run: |

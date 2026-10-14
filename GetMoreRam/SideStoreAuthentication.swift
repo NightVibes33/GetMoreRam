@@ -48,7 +48,9 @@ enum SideStoreAuthentication {
             timeZone: anisetteData.timeZone.identifier
         )
 
-        let result = try await SideSign.DeveloperPortal.shared.authenticate(
+        let result: SideSign.AuthSession
+        do {
+            result = try await SideSign.DeveloperPortal.shared.authenticate(
             appleID: appleID,
             password: password,
             anisetteData: sideAnisette,
@@ -56,7 +58,21 @@ enum SideStoreAuthentication {
             machinePassword: nil,
             accountRepairHandler: accountRepairHandler,
             verificationHandler: verificationHandler
-        )
+            )
+        } catch SideSign.ServerError.invalidResponseFormat(let payload)
+            where payload.localizedCaseInsensitiveContains("503 Service")
+                || payload.localizedCaseInsensitiveContains("<title>503")
+                || payload.localizedCaseInsensitiveContains("502 Bad Gateway")
+                || payload.localizedCaseInsensitiveContains("504 Gateway") {
+            // Some Apple 2FA routes still bypass the patched request dispatchers.
+            // Do not display raw HTML from those endpoints to the user.
+            throw NSError(
+                domain: "GetMoreRam.AppleHTTP",
+                code: 503,
+                userInfo: [NSLocalizedDescriptionKey:
+                    "Apple authentication returned a temporary gateway error. The response was HTML, not Apple login data; your Anisette provider may still be working. Retry later."]
+            )
+        }
 
         let legacySession = StosSign_API.AppleAPISession(
             dsid: result.session.dsid,
