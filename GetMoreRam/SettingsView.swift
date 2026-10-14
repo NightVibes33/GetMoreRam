@@ -30,17 +30,27 @@ struct SettingsView: View {
 
             Section {
                 if sharedModel.isLogin {
-                    HStack {
-                        Text("Email")
-                        Spacer()
-                        Text(email)
-                    }
-                    HStack {
-                        Text("Team ID")
-                        Spacer()
-                        Text(teamId)
+                    LabeledContent("Email", value: sharedModel.account?.appleID ?? email)
+                    LabeledContent("Team ID", value: sharedModel.team?.identifier ?? teamId)
+                    Button("Sign Out", role: .destructive) {
+                        sharedModel.signOut()
+                        viewModel.availableTeams = []
+                        email = ""
+                        teamId = ""
                     }
                 } else {
+                    if sharedModel.isRestoringSession {
+                        ProgressView("Restoring saved Apple session…")
+                    }
+                    if let restoreError = sharedModel.sessionRestoreError {
+                        Text(restoreError)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Button("Retry Saved Login") {
+                            Task { await sharedModel.restoreSavedSession() }
+                        }
+                        .disabled(sharedModel.isRestoringSession)
+                    }
                     Button("Sign in") {
                         viewModel.loginModalShow = true
                     }
@@ -262,11 +272,13 @@ struct SettingsView: View {
         Keychain.shared.identifier = nil
         Keychain.shared.appleIDPassword = nil
         Keychain.shared.appleIDEmailAddress = nil
+        Keychain.shared.clearSavedAppleSession()
         AnisetteDataHelper.shared.resetClientInfo()
         sharedModel.session = nil
         sharedModel.account = nil
         sharedModel.team = nil
         sharedModel.isLogin = false
+        sharedModel.sessionRestoreError = nil
         viewModel.availableTeams = []
         viewModel.teamSelectionShow = false
         email = ""
@@ -310,6 +322,12 @@ struct SettingsView: View {
     func selectTeam(_ team: Team) {
         sharedModel.team = team
         sharedModel.isLogin = true
+        do {
+            try Keychain.shared.saveSelectedTeam(team.identifier)
+        } catch {
+            errorInfo = "Could not save the selected team: \(error.localizedDescription)"
+            errorShow = true
+        }
         email = sharedModel.account?.appleID ?? email
         teamId = team.identifier
         viewModel.availableTeams = []

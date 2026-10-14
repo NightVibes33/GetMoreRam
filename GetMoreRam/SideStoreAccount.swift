@@ -86,6 +86,8 @@ enum SideStoreAccountImporter {
             throw SideStoreAccountImportError.invalidLocalUser
         }
         
+        // Importing a different Apple account must invalidate the old saved session.
+        Keychain.shared.clearSavedAppleSession()
         Keychain.shared.appleIDEmailAddress = email
         Keychain.shared.appleIDPassword = password
         Keychain.shared.adiPb = adiPB

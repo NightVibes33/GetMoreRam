@@ -12,6 +12,9 @@ struct GetMoreRamApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .task {
+                    await DataManager.shared.model.restoreSavedSession()
+                }
         }
     }
 }

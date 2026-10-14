@@ -99,13 +99,14 @@ class LoginViewModel: ObservableObject {
             loginStage = "Loading Apple developer teams"
             logging(text: "Successfully signed in")
 
+            let teams = try await fetchTeams(for: account, session: session)
+            // Cache only a completed, verified Apple session; no OTP or 2FA code.
+            try Keychain.shared.saveAppleSession(appleID: account.appleID, dsid: session.dsid, authToken: session.authToken)
             DataManager.shared.model.account = account
             DataManager.shared.model.session = session
-            Keychain.shared.appleIDEmailAddress = appleID
+            Keychain.shared.appleIDEmailAddress = account.appleID
             Keychain.shared.appleIDPassword = password
-
-            let teams = try await fetchTeams(for: account, session: session)
-            logging(text: "Successfully fetched teams")
+            logging(text: "Successfully fetched teams and saved login securely")
             availableTeams = teams
             loginStage = "Sign-in complete"
             appleID = ""

@@ -88,6 +88,56 @@ class SharedModel: ObservableObject {
     var session: AppleAPISession?
     var account: Account?
     var team: Team?
+    @Published var isRestoringSession = false
+    @Published var sessionRestoreError: String?
+
+    @MainActor
+    func restoreSavedSession() async {
+        guard !isRestoringSession, !isLogin,
+              let saved = Keychain.shared.savedAppleSession else { return }
+        isRestoringSession = true
+        sessionRestoreError = nil
+        defer { isRestoringSession = false }
+
+        do {
+            // A fresh anisette response is required: one-time codes must never be reused.
+            let anisette = try await AnisetteDataHelper.shared.getAnisetteData()
+            let restored = AppleAPISession(dsid: saved.dsid, authToken: saved.authToken, anisetteData: anisette)
+            // Verify the saved token with Apple before declaring the account signed in.
+            let verifiedAccount = try await AppleAPI.shared.fetchAccount(session: restored)
+            guard verifiedAccount.appleID.caseInsensitiveCompare(saved.appleID) == .orderedSame else {
+                throw "Saved Apple account does not match the verified session."
+            }
+            let teams = try await AppleAPI.shared.fetchTeamsForAccount(account: verifiedAccount, session: restored)
+            guard let preferredTeam = teams.first(where: { $0.identifier == saved.selectedTeamID }) ?? teams.first else {
+                throw "The saved Apple account has no accessible developer team."
+            }
+            account = verifiedAccount
+            session = restored
+            team = preferredTeam
+            isLogin = true
+            try? Keychain.shared.saveSelectedTeam(preferredTeam.identifier)
+        } catch {
+            // Keep the keychain token for later retries if Apple or the network is unavailable.
+            sessionRestoreError = "Saved Apple session could not be restored: \(error.localizedDescription)"
+            session = nil
+            account = nil
+            team = nil
+            isLogin = false
+        }
+    }
+
+    @MainActor
+    func signOut() {
+        Keychain.shared.clearSavedAppleSession()
+        Keychain.shared.appleIDEmailAddress = nil
+        Keychain.shared.appleIDPassword = nil
+        session = nil
+        account = nil
+        team = nil
+        isLogin = false
+        sessionRestoreError = nil
+    }
     
     init() {
         AnisetteDataHelper.shared.url = URL(string: anisetteServerURL)
