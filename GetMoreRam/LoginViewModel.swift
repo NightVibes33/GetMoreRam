@@ -34,18 +34,39 @@ class LoginViewModel: ObservableObject {
     private var isAuthenticationCancellationRequested = false
     
     func submitVerificationCode() {
-        guard !isVerificationCodeSubmitting,
-              let verificationCodeHandler else { return }
+        guard needVerificationCode, !isVerificationCodeSubmitting else { return }
 
-        self.verificationCodeHandler = nil
-        isVerificationCodeSubmitting = true
-        loginStage = "Submitting verification code"
-        if let continuation = sideSignContinuation {
-            sideSignContinuation = nil
-            continuation.resume(returning: .verificationCode(verificationCode.trimmingCharacters(in: .whitespacesAndNewlines)))
+        let code = verificationCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !code.isEmpty else {
+            loginError = "Enter the Apple verification code before submitting."
             return
         }
-        verificationCodeHandler(verificationCode.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        // SideSign uses a checked continuation instead of StosSign's callback.
+        // The old guard required the legacy handler, causing Submit Code to do
+        // nothing even with a valid SideSign challenge on screen.
+        if let continuation = sideSignContinuation {
+            sideSignContinuation = nil
+            loginError = nil
+            isVerificationCodeSubmitting = true
+            loginStage = "Verifying code with Apple"
+            logs.append("Sending Apple 2FA response to SideSign (code redacted)\n")
+            continuation.resume(returning: .verificationCode(code))
+            return
+        }
+
+        if let handler = verificationCodeHandler {
+            verificationCodeHandler = nil
+            loginError = nil
+            isVerificationCodeSubmitting = true
+            loginStage = "Verifying code with Apple"
+            logs.append("Sending Apple 2FA response to StosSign (code redacted)\n")
+            handler(code)
+            return
+        }
+
+        loginError = "The verification request is no longer active. Restart Apple sign-in to request a new code."
+        loginStage = "Verification session expired"
     }
 
     func cancelAuthentication() {
@@ -173,8 +194,12 @@ class LoginViewModel: ObservableObject {
 
     private func requestSideStoreVerification(_ request: SideSign.TwoFactorRequest) async -> SideSign.TwoFactorResponse {
         if isAuthenticationCancellationRequested { return .cancel }
+        // Apple may present a second challenge after a rejected or expired code.
+        // Reset this flag so the verification field and Submit Code re-enable.
+        isVerificationCodeSubmitting = false
         verificationCode = ""
         loginError = request.error
+        logs.append("Received an Apple 2FA challenge; awaiting user response (secrets redacted)\n")
         switch request {
         case .selectDeliveryMethod(let preferredMode, let phones):
             var choices = [DeliveryChoice(id: "trusted", label: "Trusted Apple device", mode: .trustedDevice, phoneID: nil)]

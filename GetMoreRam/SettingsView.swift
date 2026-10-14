@@ -170,8 +170,18 @@ struct SettingsView: View {
                     }
                 }
                 Section {
-                    Button(viewModel.needVerificationCode ? "Submit Code" : "Continue") {
-                        Task{ await loginButtonClicked() }
+                    Button {
+                        Task { await loginButtonClicked() }
+                    } label: {
+                        HStack {
+                            if viewModel.isVerificationCodeSubmitting {
+                                ProgressView()
+                                    .padding(.trailing, 4)
+                            }
+                            Text(viewModel.isVerificationCodeSubmitting ? "Verifying Code…" :
+                                 viewModel.needVerificationCode ? "Submit Code" :
+                                 viewModel.choosingDelivery ? "Request Verification Code" : "Continue")
+                        }
                     }
                     .disabled(continueButtonDisabled)
                 }
