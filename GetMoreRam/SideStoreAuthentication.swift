@@ -14,7 +14,11 @@ import StosSign_Common
 enum SideStoreAuthentication {
     static let clientInfo =
         "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
-    static let userAgent = "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
+    // ODA provisions using Android AuthKit; use that same profile at Apple
+    // sign-in unless the user explicitly selected another identity.
+    static let androidUserAgent = "AuthKit/1 (Android; Android 14) (com.apple.akd/1.0)"
+    // Keep the existing remote V3 default unchanged for compatibility.
+    static let remoteDefaultUserAgent = "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
 
     static func authenticate(
         appleID: String,
@@ -27,7 +31,10 @@ enum SideStoreAuthentication {
         let configuredInfo = preferences.string(forKey: "CustomClientInfo")?.trimmingCharacters(in: .whitespacesAndNewlines)
         let configuredAgent = preferences.string(forKey: "CustomUserAgent")?.trimmingCharacters(in: .whitespacesAndNewlines)
         let effectiveInfo = (configuredInfo?.isEmpty == false) ? configuredInfo! : clientInfo
-        let effectiveAgent = (configuredAgent?.isEmpty == false) ? configuredAgent! : userAgent
+        let onDeviceAnisette = preferences.object(forKey: "UseOnDeviceAnisette") == nil
+            || preferences.bool(forKey: "UseOnDeviceAnisette")
+        let defaultAgent = onDeviceAnisette ? androidUserAgent : remoteDefaultUserAgent
+        let effectiveAgent = (configuredAgent?.isEmpty == false) ? configuredAgent! : defaultAgent
 
         var headers = SideSign.DeveloperPortal.shared.customHeaders
         headers.grandSlam.userAgent = effectiveAgent

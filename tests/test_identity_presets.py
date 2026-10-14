@@ -22,6 +22,14 @@ class IdentityPresetsTests(unittest.TestCase):
         self.assertIn('customUserAgent == "AuthKit/1 (Macintosh; OS X 26.6)', SETTINGS)
         self.assertIn('customUserAgent = androidUserAgent', SETTINGS)
 
+    def test_on_device_authentication_defaults_to_android_not_mac(self):
+        self.assertIn('static let androidUserAgent = "AuthKit/1 (Android; Android 14) (com.apple.akd/1.0)"', LOGIN)
+        self.assertIn('let onDeviceAnisette = preferences.object(forKey: "UseOnDeviceAnisette") == nil', LOGIN)
+        self.assertIn('let defaultAgent = onDeviceAnisette ? androidUserAgent : remoteDefaultUserAgent', LOGIN)
+        self.assertIn('let effectiveAgent = (configuredAgent?.isEmpty == false) ? configuredAgent! : defaultAgent', LOGIN)
+        self.assertIn('clientInfo: effectiveInfo', LOGIN)
+        self.assertIn('userAgent: effectiveAgent', LOGIN)
+
     def test_windows_preset_is_untouched_and_headers_consumed(self):
         self.assertIn('case "Windows":\n                        customClientInfo = windowsInfo\n                        customUserAgent = "AuthKit/1 (Windows; 10.0) (com.apple.akd/1.0)"', SETTINGS)
         self.assertIn('headers.grandSlam.userAgent = effectiveAgent', LOGIN)

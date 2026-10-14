@@ -260,7 +260,7 @@ struct SettingsView: View {
             } header: {
                 Text("Authentication Identity")
             } footer: {
-                Text("These overrides are sent in the actual SideSign authentication session and remote V3 provisioning. On-device ODA still generates cryptographic anisette data locally. Invalid identifiers can cause Apple to reject login; use Reset to defaults to recover.")
+                Text("Client Identity sets the real Apple sign-in headers. With on-device Anisette, the internal ODA provisioning uses Android headers; the Apple sign-in uses your selected preset (including Windows), or Android by default. Remote V3 keeps its prior default. Invalid identifiers can cause Apple to reject login; use Reset to defaults to recover.")
             }
 
         }
