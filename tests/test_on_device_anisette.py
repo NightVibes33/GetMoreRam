@@ -16,7 +16,8 @@ class OnDeviceAnisetteTests(unittest.TestCase):
         self.assertIn('UserDefaults.standard.object(forKey: "UseOnDeviceAnisette") == nil', source("AnisetteDataHelper.swift"))
         self.assertIn('OnDeviceAnisetteHelper.shared.getAnisetteData()', source("AnisetteDataHelper.swift"))
         self.assertIn('Toggle("On-device Anisette"', source("SettingsView.swift"))
-        self.assertIn('if !sharedModel.useOnDeviceAnisette', source("SettingsView.swift"))
+        self.assertIn('if !useOnDeviceAnisette', source("SettingsView.swift"))
+        self.assertIn('@AppStorage("UseOnDeviceAnisette") private var useOnDeviceAnisette = true', source("SettingsView.swift"))
 
     def test_exact_upstream_oda_engine_and_client(self):
         code = source("OnDeviceAnisetteHelper.swift")
