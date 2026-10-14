@@ -1,4 +1,4 @@
-name: iOS 27 - Xcode 27 - Unsigned IPA and Android Apple Test
+name: iOS 18-27 - Xcode 27 - Unsigned IPA and Android Apple Test
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
         run: python3 scripts/apple_android_probe.py
 
   unsigned-ipa:
-    name: Build unsigned GetMoreRam.ipa using Xcode 27
+    name: Build unsigned GetMoreRam iOS 18-27 IPA using Xcode 27
     runs-on: xcode-27
     timeout-minutes: 90
     steps:
@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Confirm Xcode 27 and iOS 27 SDK
+      - name: Confirm Xcode 27 and iOS 27 SDK for iOS 18+ compatibility
         shell: bash
         run: |
           set -euo pipefail
@@ -81,7 +81,7 @@ jobs:
           echo "Bundle ID: $bundle"
           echo "Minimum iOS: $minimum"
           [[ "$bundle" == "com.nightvibes33.getmoreram" ]]
-          [[ "$minimum" == "27.0" ]]
+          [[ "$minimum" == "18.0" ]]
           if codesign --verify "$app" >/dev/null 2>&1; then
             echo "ERROR: Expected unsigned app but codesign verified it" >&2
             exit 1
@@ -94,13 +94,13 @@ jobs:
           mkdir -p "$RUNNER_TEMP/unsigned/Payload"
           cp -R "$RUNNER_TEMP/GetMoreRam.xcarchive/Products/Applications/GetMoreRam.app" "$RUNNER_TEMP/unsigned/Payload/"
           cd "$RUNNER_TEMP/unsigned"
-          /usr/bin/zip -qry "$GITHUB_WORKSPACE/GetMoreRam-unsigned-iOS27.ipa" Payload
-          /usr/bin/unzip -tq "$GITHUB_WORKSPACE/GetMoreRam-unsigned-iOS27.ipa"
+          /usr/bin/zip -qry "$GITHUB_WORKSPACE/GetMoreRam-unsigned-iOS18-27.ipa" Payload
+          /usr/bin/unzip -tq "$GITHUB_WORKSPACE/GetMoreRam-unsigned-iOS18-27.ipa"
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: GetMoreRam-unsigned-iOS27
-          path: GetMoreRam-unsigned-iOS27.ipa
+          name: GetMoreRam-unsigned-iOS18-27
+          path: GetMoreRam-unsigned-iOS18-27.ipa
           if-no-files-found: error
           retention-days: 30
       - name: Upload build logs on failure

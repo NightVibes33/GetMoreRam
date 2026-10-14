@@ -15,12 +15,16 @@ A simple [StosSign](https://github.com/stossy11/StosSign) wrapper app that allow
 Stossy11 - For StosSign.
 SideStore - Anisette Data fetching codes are stolen from SideStore
 
-## iOS 27 build and Android-to-Apple connectivity check
+## iOS 18–27 compatibility and Android-to-Apple connectivity check
 
-- Bundle ID: `com.nightvibes33.getmoreram`; minimum OS: iOS 27.0.
-- GitHub Actions uses the `xcode-27` ARM64 macOS runner with Xcode 27 and the iOS 27 SDK.
-- The build archives without signing and uploads `GetMoreRam-unsigned-iOS27.ipa` as a workflow artifact. Install it by signing it with your own certificate, for example using SideStore.
+- Bundle ID: `com.nightvibes33.getmoreram`; minimum OS: **iOS 18.0**, compatible through iOS 27 with the same IPA. The upper bound is not hard-coded in the app.
+- GitHub Actions uses the `xcode-27` ARM64 macOS runner with Xcode 27 and the iOS 27 SDK. The app's Debug and Release deployment targets are both iOS 18.0; compiling against the newer SDK does not require iOS 27 at runtime.
+- The build archives without signing and uploads `GetMoreRam-unsigned-iOS18-27.ipa` as a workflow artifact. Install it by signing it with your own certificate, for example using SideStore.
 - A separate job tests Apple's *unauthenticated* provisioning lookup using the Pixel 7 Android 14 `X-MMe-Client-Info` and User-Agent. The job checks for a successful HTTP response containing provisioning URLs. It does **not** authenticate an Apple ID and does not prove sign-in is fixed.
-- Trigger the workflow with a push to `main`, or visit **Actions → iOS 27 - Xcode 27 - Unsigned IPA and Android Apple Test → Run workflow**.
+- Trigger the workflow with a push to `main`, or visit **Actions → iOS 18-27 - Xcode 27 - Unsigned IPA and Android Apple Test → Run workflow**.
 
 No Apple ID credentials or anisette secrets are passed to the connectivity test.
+
+## Compatibility verification
+
+The Actions build validates the packaged IPA's `MinimumOSVersion=18.0` and uses Xcode 27 to compile against the current SDK. GetMoreRam retains upstream Apple developer-team App ID discovery, capability enabling, and the SideStore re-signing instructions. Apple authentication and entitlement availability ultimately depend on Apple's servers, your account/team, and SideStore's generated provisioning profile. Builds do not substitute for on-device testing on each iOS version.
