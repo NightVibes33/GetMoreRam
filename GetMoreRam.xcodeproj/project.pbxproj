@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4E9544D930558D4400540EF8 /* AnisetteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4E9544DA30558D4400540EF8 /* AnisetteKit */; };
 		9A3333333333333333333333 /* SideSign in Frameworks */ = {isa = PBXBuildFile; productRef = 9A2222222222222222222222 /* SideSign */; };
 		4E9544D130558D4400540EF8 /* StosSign_API in Frameworks */ = {isa = PBXBuildFile; productRef = 4E9544D030558D4400540EF8 /* StosSign_API */; };
 		4E9544D330558D4400540EF8 /* StosSign_Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 4E9544D230558D4400540EF8 /* StosSign_Auth */; };
@@ -47,6 +48,7 @@
 				4E9544D130558D4400540EF8 /* StosSign_API in Frameworks */,
 				4E9544D530558D4400540EF8 /* StosSign_Common in Frameworks */,
 				9A3333333333333333333333 /* SideSign in Frameworks */,
+				4E9544D930558D4400540EF8 /* AnisetteKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -101,6 +103,7 @@
 				4E9544D230558D4400540EF8 /* StosSign_Auth */,
 				4E9544D430558D4400540EF8 /* StosSign_Common */,
 				9A2222222222222222222222 /* SideSign */,
+				4E9544DA30558D4400540EF8 /* AnisetteKit */,
 			);
 			productName = GetMoreRam;
 			productReference = 173496F02D847E82007994DB /* GetMoreRam.app */;
@@ -133,6 +136,7 @@
 			packageReferences = (
 				4E9544CF30558D4400540EF8 /* XCRemoteSwiftPackageReference "StosSign" */,
 				9A1111111111111111111111 /* XCRemoteSwiftPackageReference "SideSign" */,
+				4E9544DB30558D4400540EF8 /* XCRemoteSwiftPackageReference "AnisetteKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 173496F12D847E82007994DB /* Products */;
@@ -388,6 +392,14 @@
 				revision = 752d1ef602aa792a432ffa1e71646dc1ecf7363c;
 			};
 		};
+		4E9544DB30558D4400540EF8 /* XCRemoteSwiftPackageReference "AnisetteKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mahee96/AnisetteKit";
+			requirement = {
+				kind = revision;
+				revision = db8b41022697b6c19be8a5f01a1ce834145a2a26;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -410,6 +422,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9A1111111111111111111111 /* XCRemoteSwiftPackageReference "SideSign" */;
 			productName = SideSign;
+		};
+		4E9544DA30558D4400540EF8 /* AnisetteKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4E9544DB30558D4400540EF8 /* XCRemoteSwiftPackageReference "AnisetteKit" */;
+			productName = AnisetteKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

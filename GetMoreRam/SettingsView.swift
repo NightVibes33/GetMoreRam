@@ -64,14 +64,24 @@ struct SettingsView: View {
             }
             
             Section {
-                HStack {
-                    Text("Anisette Server URL")
+                Toggle("On-device Anisette", isOn: $sharedModel.useOnDeviceAnisette)
+            } footer: {
+                Text("Generates anisette locally using SideStore’s ODA engine. On first use, the ODA runtime is downloaded and cached. Turn this off to use the remote V3 server below.")
+            }
+
+            if !sharedModel.useOnDeviceAnisette {
+                Section {
+                    HStack {
+                        Text("Anisette Server URL")
                     Spacer()
                     TextField("", text: $sharedModel.anisetteServerURL)
                         .multilineTextAlignment(.trailing)
+                    }
+                } footer: {
+                    Text("Remote anisette V3 fallback. This server is only used when on-device Anisette is disabled.")
                 }
             }
-            
+
             Section {
                 Button("Clean Up Keychain") {
                     cleanUp()

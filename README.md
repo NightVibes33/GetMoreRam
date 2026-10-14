@@ -28,3 +28,10 @@ No Apple ID credentials or anisette secrets are passed to the connectivity test.
 ## Compatibility verification
 
 The Actions build validates the packaged IPA's `MinimumOSVersion=18.0` and uses Xcode 27 to compile against the current SDK. GetMoreRam retains upstream Apple developer-team App ID discovery, capability enabling, and the SideStore re-signing instructions. Apple authentication and entitlement availability ultimately depend on Apple's servers, your account/team, and SideStore's generated provisioning profile. Builds do not substitute for on-device testing on each iOS version.
+
+## On-device Anisette (ClientQUI v1.0 integration)
+
+- **Enabled by default**, using `AnisetteKit` through `SideSign.AnisetteDataManager`. The first use downloads ODA runtime libraries from the metadata source in ClientQUI v1.0 (`https://zzz.haus/oda.json`), then anisette headers are generated locally on the device and the libraries are cached.
+- GetMoreRam still uses **SideSign for Apple login and trusted-device/SMS/voice 2FA**, and **StosSign for developer App ID and Increased Memory Limit APIs**.
+- In **Settings → On-device Anisette**, switch the toggle **off** to use the configured remote Anisette V3 server. No automatic remote fallback sends provisioning data when the local ODA path fails.
+- Real Apple sign-in and ODA library compatibility on each iOS version still require on-device verification.

@@ -41,7 +41,21 @@ final class AnisetteDataHelper
     
     func getAnisetteData(refresh: Bool = false) async throws -> AnisetteData
     {
-        
+        // Match ClientQUI/GetMoreRam v1.0: generate local ODA anisette by default.
+        // Remote V3 is an explicit Settings fallback, not a silent downgrade.
+        if UserDefaults.standard.object(forKey: "UseOnDeviceAnisette") == nil ||
+           UserDefaults.standard.bool(forKey: "UseOnDeviceAnisette") {
+            self.printOut("Generating on-device anisette (first use may download ODA libraries).")
+            do {
+                let result = try await OnDeviceAnisetteHelper.shared.getAnisetteData()
+                self.printOut("On-device anisette generated successfully.")
+                return result
+            } catch {
+                self.printOut("On-device anisette failed: \(error.localizedDescription)")
+                throw error
+            }
+        }
+
         // Honor live @AppStorage configuration instead of the launch-time URL.
         if let configured = UserDefaults.standard.string(forKey: "AnisetteServer") {
             guard let parsed = URL(string: configured),
