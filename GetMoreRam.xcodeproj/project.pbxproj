@@ -396,8 +396,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/mahee96/AnisetteKit";
 			requirement = {
-				kind = revision;
-				revision = db8b41022697b6c19be8a5f01a1ce834145a2a26;
+				branch = main;
+				kind = branch;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
