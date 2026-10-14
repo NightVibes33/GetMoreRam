@@ -24,6 +24,13 @@ let localizedDescription = "\(errorDescription) (\(errorCode))"
         verificationHandler: @escaping (@escaping (String?) -> Void) async -> Void
     ) async throws {
         let requestURL = URL(string: "https://gsa.apple.com/auth/verify/trusteddevice")!
+        let request = makeTwoFactorCodeRequest(
+            url: requestURL,
+            dsid: dsid,
+            idmsToken: idmsToken,
+            anisetteData: anisetteData
+        )
+        
         let (_, _) = try await AppleAPI.shared.session.data(for: request)
         
         let verificationCode = try await withCheckedThrowingContinuation

@@ -90,7 +90,7 @@ def patch_source(source: str) -> str:
         '        default:\n'
         '            if let authType, !authType.isEmpty {\n'
         '                throw AppleAPIError.customError(code: -22411, message: '
-        '"Unsupported Apple authentication challenge: \(authType).")\n'
+        r'"Unsupported Apple authentication challenge: \(authType).")\n'
         '            }\n'
         '            guard let sessionKey = decryptedDictionary["sk"] as? Data,',
         "do not request app tokens before challenge",
@@ -108,9 +108,23 @@ def patch_source(source: str) -> str:
     )
     source = replace_exact(
         source,
+        '        let request = makeTwoFactorCodeRequest(\n'
+        '            url: requestURL,\n'
+        '            dsid: dsid,\n'
+        '            idmsToken: idmsToken,\n'
+        '            anisetteData: anisetteData\n'
+        '        )\n'
+        '        \n'
         '        let (_, _) = try await AppleAPI.shared.session.data(for: request)\n'
         '        \n'
         '        let verificationCode = try await withCheckedThrowingContinuation',
+        '        let request = makeTwoFactorCodeRequest(\n'
+        '            url: requestURL,\n'
+        '            dsid: dsid,\n'
+        '            idmsToken: idmsToken,\n'
+        '            anisetteData: anisetteData\n'
+        '        )\n'
+        '        \n'
         '        if !codeAlreadySent {\n'
         '            let (_, _) = try await AppleAPI.shared.session.data(for: request)\n'
         '        }\n'
