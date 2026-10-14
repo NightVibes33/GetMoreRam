@@ -1,0 +1,92 @@
+name: iPhone Simulator Screenshot Audit
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    name: Build and capture four real iPhone screens
+    runs-on: xcode-27
+    timeout-minutes: 90
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: List iPhone simulators
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes
+          xcrun simctl list devices available
+
+      - name: Resolve Swift dependencies
+        run: |
+          set -euo pipefail
+          xcodebuild -resolvePackageDependencies -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages" -project GetMoreRam.xcodeproj -scheme GetMoreRam
+
+      - name: Apply pinned Apple API compatibility patches
+        run: |
+          set -euo pipefail
+          python3 scripts/patch_stossign_auth.py "$RUNNER_TEMP/SourcePackages/checkouts/StosSign/Sources/StosSign_Auth/Authentication.swift"
+          python3 scripts/patch_stossign_api_response.py "$RUNNER_TEMP/SourcePackages/checkouts/StosSign/Sources/StosSign_API/AppleAPI.swift"
+
+      - name: Build actual iPhone Simulator app
+        run: |
+          set -euo pipefail
+          xcodebuild build -project GetMoreRam.xcodeproj -scheme GetMoreRam -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/SimulatorDerived" -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" | tee "$RUNNER_TEMP/simulator-build.log"
+
+      - name: Boot available iPhone Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun simctl list devices available -j > "$RUNNER_TEMP/devices.json"
+          udid=$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]))["devices"];a=[v for k,items in d.items() if "iOS" in k for v in items if v.get("isAvailable") and v["name"].startswith("iPhone")];a.sort(key=lambda x:(not x["name"].startswith("iPhone 17"),"Pro" not in x["name"],x["name"]));print(a[0]["udid"] if a else "")' "$RUNNER_TEMP/devices.json")
+          if [ -z "$udid" ]; then echo "No iPhone Simulator runtime installed on this runner"; exit 1; fi
+          echo "SIMULATOR_UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+
+      - name: Capture Home, App IDs, Memory and Settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/SimulatorDerived/Build/Products/Debug-iphonesimulator/GetMoreRam.app"
+          test -d "$app"
+          bundle=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$app/Info.plist")
+          xcrun simctl install "$SIMULATOR_UDID" "$app"
+          xcrun simctl ui "$SIMULATOR_UDID" appearance dark
+          xcrun simctl status_bar "$SIMULATOR_UDID" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100 || true
+          mkdir -p simulator-screenshots
+          names=(Home AppIDs Memory Settings)
+          for i in 0 1 2 3; do
+            xcrun simctl terminate "$SIMULATOR_UDID" "$bundle" >/dev/null 2>&1 || true
+            xcrun simctl launch "$SIMULATOR_UDID" "$bundle" -UITestScreenshot "-UITestTab=$i"
+            sleep 5
+            image="simulator-screenshots/$((i+1))-${names[$i]}.png"
+            xcrun simctl io "$SIMULATOR_UDID" screenshot "$image"
+            test -s "$image"
+          done
+          test "$(find simulator-screenshots -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" -eq 4
+
+      - name: Upload real simulator screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GetMoreRam-iPhone-Simulator-Screenshots
+          path: simulator-screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload simulator build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GetMoreRam-Simulator-Build-Log
+          path: ${{ runner.temp }}/simulator-build.log
+          if-no-files-found: ignore
