@@ -1,0 +1,64 @@
+name: Import GetMoreRam original icon artwork
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/import_icon_artwork.py'
+      - '.github/workflows/import-original-icons.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-getmoreram-icons
+  cancel-in-progress: false
+
+jobs:
+  import-original-icons:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Install image processing dependency
+        run: python3 -m pip install --user Pillow
+      - name: Fetch the exact supplied icon artwork
+        shell: bash
+        env:
+          ICON_ARTWORK_URL: https://d2ol7oe51mr4n9.cloudfront.net/user_3JA62RTSWrerhK4O20lVs9K7hJj/d72d3259-92aa-4d6b-9bb3-7e9b4013ca1e.jpg
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 4 --retry-delay 2 --silent --show-error \
+            "$ICON_ARTWORK_URL" -o "$RUNNER_TEMP/GetMoreRam-Original-Icons.jpg"
+          file "$RUNNER_TEMP/GetMoreRam-Original-Icons.jpg"
+          python3 scripts/import_icon_artwork.py "$RUNNER_TEMP/GetMoreRam-Original-Icons.jpg" GetMoreRam/Assets.xcassets
+      - name: Verify ten real icon designs and previews
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          names = ["Default","Blue","Purple","Green","Mono","Glass","Orbit","Gradient","Carbon","Board"]
+          root = Path("GetMoreRam/Assets.xcassets")
+          for name in names:
+              folder = root / ("AppIcon.appiconset" if name == "Default" else name + ".appiconset")
+              path = folder / (name + ".png")
+              assert Image.open(path).size == (1024,1024), path
+              assert Image.open(root / ("IconPreview-" + name + ".imageset") / (name + ".png")).size == (256,256)
+          print("All ten actual icon designs and Settings previews verified.")
+          PY
+      - name: Commit generated app icons to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add GetMoreRam/Assets.xcassets
+          if git diff --cached --quiet; then
+            echo "Original icons already committed."
+            exit 0
+          fi
+          git commit -m "Bundle all ten supplied 1024px icon designs and live picker previews"
+          git push origin HEAD:main
