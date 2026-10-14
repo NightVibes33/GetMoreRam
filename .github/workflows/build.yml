@@ -56,7 +56,7 @@ jobs:
               info = json.loads((base / "Contents.json").read_text())
               assert info["images"][0]["filename"] == name + ".png"
               raw = png.read_bytes()
-              assert raw[:8] == b"\\x89PNG\\r\\n\\x1a\\n"
+              assert raw[:8] == b"\x89PNG\r\n\x1a\n"
               assert struct.unpack(">II",raw[16:24]) == (1024,1024), name
               preview = root / ("IconPreview-" + name + ".imageset") / (name + ".png")
               preview_bytes = preview.read_bytes()
