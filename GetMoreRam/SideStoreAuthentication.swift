@@ -81,10 +81,25 @@ enum SideStoreAuthentication {
             )
         }
 
+        // SideSign signs in with effectiveInfo, which may differ from the
+        // ODA provider's defaults. Preserve that identity in the StosSign
+        // session used for capability updates.
+        let developerAnisette = StosSign_Common.AnisetteData(
+            machineID: anisetteData.machineID,
+            oneTimePassword: anisetteData.oneTimePassword,
+            localUserID: anisetteData.localUserID,
+            routingInfo: anisetteData.routingInfo,
+            deviceUniqueIdentifier: anisetteData.deviceUniqueIdentifier,
+            deviceSerialNumber: anisetteData.deviceSerialNumber,
+            deviceDescription: effectiveInfo,
+            date: anisetteData.date,
+            locale: anisetteData.locale,
+            timeZone: anisetteData.timeZone
+        )
         let legacySession = StosSign_API.AppleAPISession(
             dsid: result.session.dsid,
             authToken: result.session.authToken,
-            anisetteData: anisetteData
+            anisetteData: developerAnisette
         )
         let account = try await StosSign_API.AppleAPI.shared.fetchAccount(session: legacySession)
         return (account, legacySession)

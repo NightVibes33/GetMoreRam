@@ -27,12 +27,21 @@ final class OnDeviceAnisetteHelper {
             Data(base64Encoded: $0, options: .ignoreUnknownCharacters)
         }
 
+        // Like SideStore's AnisetteConfigManager.makeRequestHeaders(), use
+        // the active Client Identity instead of a hardcoded Android profile.
+        // No override = the existing Android ODA default.
+        let defaults = UserDefaults.standard
+        let configuredInfo = defaults.string(forKey: "CustomClientInfo")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let configuredAgent = defaults.string(forKey: "CustomUserAgent")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let clientInfo = (configuredInfo?.isEmpty == false)
+            ? configuredInfo! : "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
+        let userAgent = (configuredAgent?.isEmpty == false)
+            ? configuredAgent! : "AuthKit/1 (Android; Android 14) (com.apple.akd/1.0)"
         let requestHeaders = AnisetteRequestHeaders().with {
-            // This is the client profile that works with the current GSA flow
-            // in SideStore. Keep it configurable in one place for future Apple
-            // changes instead of querying a remote /v3/client_info endpoint.
-            $0.clientInfo = "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
-            $0.userAgent = "AuthKit/1 (Android; Android 14) (com.apple.akd/1.0)"
+            $0.clientInfo = clientInfo
+            $0.userAgent = userAgent
         }
 
         do {

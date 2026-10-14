@@ -29,9 +29,12 @@ def with_response(body: str, label: str) -> str:
         let httpCode = (response as? HTTPURLResponse)?.statusCode ?? 0
         let mime = (response as? HTTPURLResponse)?.mimeType ?? "unknown"
         guard (200...299).contains(httpCode) else {
+            let hint = httpCode == 401
+                ? " Sign out and sign in again after selecting your Client Identity in Settings. Verify the selected developer team has permission for this App ID."
+                : ""
             throw NSError(domain: "GetMoreRam.AppleResponse", code: httpCode,
                           userInfo: [NSLocalizedDescriptionKey:
-                            "Apple developer request returned HTTP \(httpCode) (\(mime))."])
+                            "Apple developer request returned HTTP \(httpCode) (\(mime)).\(hint)"])
         }''',
         label,
     )

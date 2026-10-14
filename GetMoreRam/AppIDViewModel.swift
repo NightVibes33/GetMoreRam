@@ -32,7 +32,16 @@ class AppIDModel : ObservableObject, Hashable {
             throw "Please Login First"
         }
 
-        let cool = try await AppleAPI.shared.updateAppID(appID, capabilities: ["INCREASED_MEMORY_LIMIT"], team: team, session: session)
+        // Apple issues single-use Anisette OTP headers. Refresh them before
+        // the capability edit, instead of reusing the ones from sign-in and
+        // the preceding App ID listing requests.
+        let freshAnisette = try await AnisetteDataHelper.shared.getAnisetteData()
+        let freshSession = AppleAPISession(
+            dsid: session.dsid, authToken: session.authToken, anisetteData: freshAnisette
+        )
+        let cool = try await AppleAPI.shared.updateAppID(
+            appID, capabilities: ["INCREASED_MEMORY_LIMIT"], team: team, session: freshSession
+        )
         
         result = "\(cool)"
     }

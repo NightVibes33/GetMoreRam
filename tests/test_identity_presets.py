@@ -13,7 +13,9 @@ class IdentityPresetsTests(unittest.TestCase):
         self.assertIn('private let androidUserAgent = "AuthKit/1 (Android; Android 14) (com.apple.akd/1.0)"', SETTINGS)
         self.assertIn('case "Android":\n                        customClientInfo = androidInfo\n                        customUserAgent = androidUserAgent', SETTINGS)
         self.assertIn('private let androidInfo = "<Pixel 7> <Android;14;', SETTINGS)
-        self.assertIn('$0.userAgent = "AuthKit/1 (Android; Android 14) (com.apple.akd/1.0)"', ODA)
+        self.assertIn('? configuredAgent! : "AuthKit/1 (Android; Android 14) (com.apple.akd/1.0)"', ODA)
+        self.assertIn('$0.userAgent = userAgent', ODA)
+        self.assertIn('$0.clientInfo = clientInfo', ODA)
 
     def test_legacy_android_mac_user_agent_migrates_without_overwriting_custom(self):
         self.assertIn('migrateLegacyAndroidPreset()', SETTINGS)
@@ -29,6 +31,18 @@ class IdentityPresetsTests(unittest.TestCase):
         self.assertIn('let effectiveAgent = (configuredAgent?.isEmpty == false) ? configuredAgent! : defaultAgent', LOGIN)
         self.assertIn('clientInfo: effectiveInfo', LOGIN)
         self.assertIn('userAgent: effectiveAgent', LOGIN)
+
+    def test_on_device_anisette_respects_current_settings(self):
+        self.assertIn('defaults.string(forKey: "CustomClientInfo")', ODA)
+        self.assertIn('defaults.string(forKey: "CustomUserAgent")', ODA)
+        self.assertIn('let requestHeaders = AnisetteRequestHeaders().with', ODA)
+
+    def test_capability_request_uses_fresh_anisette(self):
+        app = (ROOT / "GetMoreRam/AppIDViewModel.swift").read_text()
+        self.assertIn('let freshAnisette = try await AnisetteDataHelper.shared.getAnisetteData()', app)
+        self.assertIn('session: freshSession', app)
+        self.assertIn('developerAnisette', LOGIN)
+        self.assertIn('deviceDescription: effectiveInfo', LOGIN)
 
     def test_windows_preset_is_untouched_and_headers_consumed(self):
         self.assertIn('case "Windows":\n                        customClientInfo = windowsInfo\n                        customUserAgent = "AuthKit/1 (Windows; 10.0) (com.apple.akd/1.0)"', SETTINGS)
