@@ -85,12 +85,12 @@ def patch_source(source: str) -> str:
         '        default:\n'
         '            guard let sessionKey = decryptedDictionary["sk"] as? Data,',
         '        case "repair":\n'
-        '            throw AppleAPIError.customError(code: -22411, message: '
+        '            throw AppleAPIError.customError(code: -1, message: '
         '"Apple requires additional account security verification. Visit https://account.apple.com and complete any security review.")\n'
         '        default:\n'
         '            if let authType, !authType.isEmpty {\n'
-        '                throw AppleAPIError.customError(code: -22411, message: '
-        r'"Unsupported Apple authentication challenge: \(authType).")\n'
+        '                throw AppleAPIError.customError(code: -2, message: '
+        '"Unsupported Apple authentication challenge: \\(authType).")\n'
         '            }\n'
         '            guard let sessionKey = decryptedDictionary["sk"] as? Data,',
         "do not request app tokens before challenge",
