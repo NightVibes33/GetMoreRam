@@ -73,7 +73,7 @@ struct AppIDView : View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 if isSearchPresented {
                     Section {
@@ -113,7 +113,13 @@ struct AppIDView : View {
                             NavigationLink {
                                 AppIDEditView(viewModel: appID)
                             } label: {
-                                Text(appID.bundleID)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(appID.appID.name)
+                                        .font(.headline)
+                                    Text(appID.bundleID)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -151,7 +157,6 @@ struct AppIDView : View {
                 Text(errorInfo)
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
     }
     
     func refreshButtonClicked() async {

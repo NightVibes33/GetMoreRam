@@ -5,6 +5,7 @@ struct ContentView: View {
     @StateObject private var login = LoginViewModel()
     @State private var selectedTab = 0
     @AppStorage("AppearancePreference") private var appearancePreference = "System"
+    @AppStorage("SelectedAppIcon") private var selectedAppIcon = "Default"
 
     private var preferredAppearance: ColorScheme? {
         switch appearancePreference {
@@ -19,7 +20,22 @@ struct ContentView: View {
             NavigationStack {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        Text("GetMoreRam").font(.largeTitle.bold())
+                        HStack(spacing: 16) {
+                            Image("IconPreview-" + selectedAppIcon)
+                                .resizable()
+                                .frame(width: 86, height: 86)
+                                .clipShape(RoundedRectangle(cornerRadius: 20))
+                                .accessibilityLabel("Installed GetMoreRam icon")
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("GetMoreRam").font(.title.bold())
+                                Text("Developer capability manager")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
                         Text("Apple developer capability manager")
                             .foregroundStyle(.secondary)
                         Label("Apple Account", systemImage: "person.crop.circle")

@@ -15,7 +15,8 @@ struct SettingsView: View {
 
     @AppStorage("CustomClientInfo") private var customClientInfo = ""
     @AppStorage("CustomUserAgent") private var customUserAgent = ""
-    @State private var identityPreset = "Custom"
+    @AppStorage("IdentityPreset") private var identityPreset = "Custom"
+    @AppStorage("UseOnDeviceAnisette") private var useOnDeviceAnisette = true
     private let androidInfo = "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
     private let macInfo = "<MacBookPro18,3> <Mac OS X;14.5;23F79> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
     private let windowsInfo = "<PC> <Windows;10;19045> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
@@ -81,74 +82,30 @@ struct SettingsView: View {
             }
             
             Section {
-                Toggle("On-device Anisette", isOn: $sharedModel.useOnDeviceAnisette)
-            } footer: {
-                Text("Generates anisette locally using SideStore’s ODA engine. On first use, the ODA runtime is downloaded and cached. Turn this off to use the remote V3 server below.")
-            }
-
-            if !sharedModel.useOnDeviceAnisette {
-                Section {
-                    HStack {
-                        Text("Anisette Server URL")
-                    Spacer()
-                    TextField("", text: $sharedModel.anisetteServerURL)
-                        .multilineTextAlignment(.trailing)
-                    }
-                } footer: {
-                    Text("Remote anisette V3 fallback. This server is only used when on-device Anisette is disabled.")
+                NavigationLink {
+                    anisetteSettings
+                } label: {
+                    Label("Anisette", systemImage: "network")
                 }
-            }
-
-            Section {
-                Picker("Identity Preset", selection: $identityPreset) {
-                    Text("Custom").tag("Custom")
-                    Text("Android").tag("Android")
-                    Text("macOS").tag("macOS")
-                    Text("Windows").tag("Windows")
+                NavigationLink {
+                    identitySettings
+                } label: {
+                    Label("Client Identity", systemImage: "desktopcomputer")
                 }
-                .onChange(of: identityPreset) { _, selection in
-                    switch selection {
-                    case "Android":
-                        customClientInfo = androidInfo
-                        customUserAgent = "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
-                    case "macOS":
-                        customClientInfo = macInfo
-                        customUserAgent = "AuthKit/1 (Macintosh; OS X 14.5) (com.apple.akd/1.0)"
-                    case "Windows":
-                        customClientInfo = windowsInfo
-                        customUserAgent = "AuthKit/1 (Windows; 10.0) (com.apple.akd/1.0)"
-                    default: break
-                    }
-                }
-                TextField("Client-Info (Apple header)", text: $customClientInfo, axis: .vertical)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField("User-Agent", text: $customUserAgent, axis: .vertical)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                Button("Reset to defaults") {
-                    customClientInfo = ""
-                    customUserAgent = ""
-                    identityPreset = "Custom"
-                }
-            } header: {
-                Text("Authentication Identity")
-            } footer: {
-                Text("These overrides are sent in the actual SideSign authentication session and remote V3 provisioning. On-device ODA still generates cryptographic anisette data locally. Invalid identifiers can cause Apple to reject login; use Reset to defaults to recover.")
-            }
+            } header: { Text("Connection") }
 
             Section {
                 NavigationLink {
                     IconAppearanceView()
                 } label: {
                     HStack {
-                        Image("IconPreview-" + (UIApplication.shared.alternateIconName ?? "Default"))
+                        Image("IconPreview-" + selectedAppIcon)
                             .resizable()
                             .frame(width: 44, height: 44)
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                         VStack(alignment: .leading, spacing: 4) {
                             Text("App Icon")
-                            Text(UIApplication.shared.alternateIconName ?? "Default")
+                            Text(selectedAppIcon)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -168,7 +125,7 @@ struct SettingsView: View {
 
             Section {
                 LabeledContent("App Version", value: appVersionLabel)
-                LabeledContent("Anisette Mode", value: sharedModel.useOnDeviceAnisette ? "On-device ODA" : "Remote V3")
+                LabeledContent("Anisette Mode", value: useOnDeviceAnisette ? "On-device ODA" : "Remote V3")
             } header: {
                 Text("Build Information")
             }
@@ -209,8 +166,78 @@ struct SettingsView: View {
         .sheet(isPresented: $viewModel.teamSelectionShow) {
             teamSelectionView
         }
+        .onAppear { selectedAppIcon = UIApplication.shared.alternateIconName ?? "Default" }
     }
     
+    private var anisetteSettings: some View {
+        Form {
+            Section {
+                Toggle("On-device Anisette", isOn: $useOnDeviceAnisette)
+            } footer: {
+                Text("Generates anisette locally using SideStore’s ODA engine. On first use, the ODA runtime is downloaded and cached. Turn this off to use the remote V3 server below.")
+            }
+
+            if !useOnDeviceAnisette {
+                Section {
+                    HStack {
+                        Text("Anisette Server URL")
+                    Spacer()
+                    TextField("", text: $sharedModel.anisetteServerURL)
+                        .multilineTextAlignment(.trailing)
+                    }
+                } footer: {
+                    Text("Remote anisette V3 fallback. This server is only used when on-device Anisette is disabled.")
+                }
+            }
+
+        }
+        .navigationTitle("Anisette")
+    }
+
+    private var identitySettings: some View {
+        Form {
+            Section {
+                Picker("Identity Preset", selection: $identityPreset) {
+                    Text("Custom").tag("Custom")
+                    Text("Android").tag("Android")
+                    Text("macOS").tag("macOS")
+                    Text("Windows").tag("Windows")
+                }
+                .onChange(of: identityPreset) { _, selection in
+                    switch selection {
+                    case "Android":
+                        customClientInfo = androidInfo
+                        customUserAgent = "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
+                    case "macOS":
+                        customClientInfo = macInfo
+                        customUserAgent = "AuthKit/1 (Macintosh; OS X 14.5) (com.apple.akd/1.0)"
+                    case "Windows":
+                        customClientInfo = windowsInfo
+                        customUserAgent = "AuthKit/1 (Windows; 10.0) (com.apple.akd/1.0)"
+                    default: break
+                    }
+                }
+                TextField("Client-Info (Apple header)", text: $customClientInfo, axis: .vertical)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                TextField("User-Agent", text: $customUserAgent, axis: .vertical)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Reset to defaults") {
+                    customClientInfo = ""
+                    customUserAgent = ""
+                    identityPreset = "Custom"
+                }
+            } header: {
+                Text("Authentication Identity")
+            } footer: {
+                Text("These overrides are sent in the actual SideSign authentication session and remote V3 provisioning. On-device ODA still generates cryptographic anisette data locally. Invalid identifiers can cause Apple to reject login; use Reset to defaults to recover.")
+            }
+
+        }
+        .navigationTitle("Client Identity")
+    }
+
     var loginModal: some View {
         NavigationView {
             Form {
@@ -510,6 +537,7 @@ struct IconAppearanceView: View {
         ("Carbon", "Carbon"), ("Board", "Board")
     ]
     @State private var selected = UIApplication.shared.alternateIconName ?? "Default"
+    @AppStorage("SelectedAppIcon") private var syncedIcon = "Default"
     @State private var changing = false
     @State private var errorMessage: String?
 
@@ -545,7 +573,10 @@ struct IconAppearanceView: View {
         }
         .navigationTitle("App Icon")
         .navigationBarTitleDisplayMode(.inline)
-        .task { selected = UIApplication.shared.alternateIconName ?? "Default" }
+        .task {
+            selected = UIApplication.shared.alternateIconName ?? "Default"
+            syncedIcon = selected
+        }
         .alert("Unable to Change Icon", isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
@@ -565,6 +596,7 @@ struct IconAppearanceView: View {
             DispatchQueue.main.async {
                 changing = false
                 selected = UIApplication.shared.alternateIconName ?? "Default"
+                syncedIcon = selected
                 if let error { errorMessage = error.localizedDescription }
             }
         }
