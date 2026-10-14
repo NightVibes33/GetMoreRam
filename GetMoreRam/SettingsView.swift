@@ -23,6 +23,7 @@ struct SettingsView: View {
     @State private var importResultShow = false
     @State private var importResultInfo = ""
     @State private var isImportingSideStoreAccount = false
+    @AppStorage("GetMoreRam.authProfile") private var authProfile = "android"
     
 
     var body: some View {
@@ -118,22 +119,48 @@ struct SettingsView: View {
                 } header: {
                     Text("Password")
                 }
+                Section {
+                    Picker("Apple authentication identity", selection: $authProfile) {
+                        Text("Pixel 7 · Android 14").tag("android")
+                        Text("macOS compatibility").tag("mac")
+                    }
+                    .disabled(viewModel.isLoginInProgress)
+                    .onChange(of: authProfile) { _, _ in
+                        AnisetteDataHelper.shared.resetClientInfo()
+                        viewModel.loginError = nil
+                    }
+                } footer: {
+                    Text("Android is the default. If Apple rejects it before 2FA, try macOS compatibility.")
+                }
                 if viewModel.needVerificationCode {
                     Section {
-                        TextField("", text: $viewModel.verificationCode)
+                        TextField("6-digit code", text: $viewModel.verificationCode)
+                            .keyboardType(.numberPad)
+                            .textContentType(.oneTimeCode)
                             .disabled(viewModel.isVerificationCodeSubmitting)
                     } header: {
                         Text("Verification Code")
                     }
                 }
+                if let loginError = viewModel.loginError {
+                    Section {
+                        Text(loginError)
+                            .foregroundStyle(.red)
+                            .textSelection(.enabled)
+                    } header: {
+                        Text("Sign-in error")
+                    }
+                }
                 Section {
-                    Button("Continue") {
+                    Button(viewModel.needVerificationCode ? "Submit Code" : "Continue") {
                         Task{ await loginButtonClicked() }
                     }
                     .disabled(continueButtonDisabled)
                 }
                 
                 Section {
+                    Text(viewModel.loginStage)
+                        .foregroundStyle(.secondary)
                     Text(viewModel.logs)
                         .font(.system(.subheadline, design: .monospaced))
                 } header: {
@@ -219,8 +246,13 @@ struct SettingsView: View {
         } catch is CancellationError {
             return
         } catch {
-            errorInfo = error.detailedDescription
-            errorShow = true
+            if let appleError = error as? AppleAPIError,
+               case .customError(let code, _) = appleError,
+               code == -22411 {
+                viewModel.loginError = "Apple rejected this request before a usable 2FA session was available (-22411). The verification code cannot be submitted until Apple accepts this stage. You can try macOS compatibility mode or retry later.\n\n" + error.detailedDescription
+            } else {
+                viewModel.loginError = error.detailedDescription
+            }
         }
     }
 

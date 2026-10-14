@@ -20,6 +20,8 @@ class LoginViewModel: ObservableObject {
     @Published var isLoginInProgress = false
     @Published private(set) var isVerificationCodeSubmitting = false
     @Published var logs = ""
+    @Published var loginError: String? = nil
+    @Published var loginStage = ""
     @Published var availableTeams: [Team] = []
     
     private var verificationCodeHandler: ((String?) -> Void)?
@@ -31,7 +33,8 @@ class LoginViewModel: ObservableObject {
 
         self.verificationCodeHandler = nil
         isVerificationCodeSubmitting = true
-        verificationCodeHandler(verificationCode)
+        loginStage = "Submitting verification code"
+        verificationCodeHandler(verificationCode.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     func cancelAuthentication() {
@@ -54,6 +57,8 @@ class LoginViewModel: ObservableObject {
         }
         
         logs = ""
+        loginError = nil
+        loginStage = "Obtaining anisette data"
         isLoginInProgress = true
         isAuthenticationCancellationRequested = false
         
@@ -67,8 +72,6 @@ class LoginViewModel: ObservableObject {
 
         defer {
             verificationCodeHandler = nil
-            appleID = ""
-            password = ""
             needVerificationCode = false
             verificationCode = ""
             isLoginInProgress = false
@@ -78,6 +81,7 @@ class LoginViewModel: ObservableObject {
 
         do {
             let anisetteData = try await AnisetteDataHelper.shared.getAnisetteData()
+            loginStage = "Authenticating with Apple"
 
             let (account, session) = try await AppleAPI.shared.authenticate(appleID: appleID, password: password, anisetteData: anisetteData) { [weak self] completionHandler in
                 guard let self else {
@@ -92,6 +96,7 @@ class LoginViewModel: ObservableObject {
                 throw CancellationError()
             }
 
+            loginStage = "Loading Apple developer teams"
             logging(text: "Successfully signed in")
 
             DataManager.shared.model.account = account
@@ -102,13 +107,16 @@ class LoginViewModel: ObservableObject {
             let teams = try await fetchTeams(for: account, session: session)
             logging(text: "Successfully fetched teams")
             availableTeams = teams
-
+            loginStage = "Sign-in complete"
+            appleID = ""
+            password = ""
             return true
         } catch {
             if isAuthenticationCancellationRequested {
                 throw CancellationError()
             }
-            print(error)
+            loginStage = "Apple authentication failed"
+            logging(text: "Authentication error: \(error.localizedDescription)")
             throw error
         }
     }
@@ -121,6 +129,7 @@ class LoginViewModel: ObservableObject {
 
         verificationCodeHandler = handler
         verificationCode = ""
+        loginStage = "Enter the Apple verification code"
         needVerificationCode = true
         isVerificationCodeSubmitting = false
     }
