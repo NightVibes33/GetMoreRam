@@ -20,8 +20,10 @@ struct AppIDEditView : View {
                 } label: {
                     Text("Add Increased Memory Limit")
                 }
+            } footer: {
+                Text("After enabling, re-sign and reinstall the target app using SideStore to obtain a new provisioning profile. This does not change the already-installed copy.")
             }
-            
+
             Section {
                 Text(viewModel.result)
                     .font(.system(.subheadline, design: .monospaced))

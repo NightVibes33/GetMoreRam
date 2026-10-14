@@ -2,14 +2,14 @@
 A simple [StosSign](https://github.com/stossy11/StosSign) wrapper app that allows you to enable "Increased Memory Limit" for your sideloaded apps without using Xcode.
 
 # How to use
-1. Sideload this app
-2. Go to settings, sign in your account that you used to sign the app you want to enable "Increased Memory Limit"
-3. Go to "App IDs" page
-4. Tap Refresh
-5. Tap the app you want to enable "Increased Memory Limit"
-6. Tap "Add Increased Memory Limit"
-7. Reinstall the app from SideStore/AltStore
-8. Check if you have "Increased Memory Limit"
+1. Install GetMoreRam (sign its unsigned IPA with SideStore first).
+2. Open **Settings** and sign in using the **same Apple account and developer team that SideStore uses to sign the target app**.
+3. Open **App IDs**, tap **Refresh**, then tap the **magnifying-glass search button** to find your target app by name or bundle identifier. This lists Apple developer-team App IDs, **not necessarily the apps currently installed on your iPhone**.
+4. Select the target App ID, then tap **Add Increased Memory Limit** to request `INCREASED_MEMORY_LIMIT` from Apple.
+5. **Re-sign and reinstall/refresh the target app in SideStore after enabling the capability.** The previously installed copy retains its old provisioning profile, so enabling the App ID alone does not change the installed app.
+6. Check the **newly signed target app**, not GetMoreRam, for the entitlement `com.apple.developer.kernel.increased-memory-limit` set to `true` in its signed entitlements/provisioning profile.
+
+**Important:** This changes the capability associated with the target Apple developer App ID. GetMoreRam does not inject an entitlement into an already-installed app or itself re-sign the target IPA. Apple's acceptance of the update does not guarantee the entitlement is included in a new signature; verify the resulting installation.
 
 # Credits
 Stossy11 - For StosSign.
