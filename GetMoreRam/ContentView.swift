@@ -4,6 +4,15 @@ struct ContentView: View {
     @StateObject private var appIDs = AppIDViewModel()
     @StateObject private var login = LoginViewModel()
     @State private var selectedTab = 0
+    @AppStorage("AppearancePreference") private var appearancePreference = "System"
+
+    private var preferredAppearance: ColorScheme? {
+        switch appearancePreference {
+        case "Dark": return .dark
+        case "Light": return .light
+        default: return nil
+        }
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -42,6 +51,7 @@ struct ContentView: View {
             .tabItem { Label("Settings", systemImage: "gearshape.fill") }.tag(3)
         }
         .environmentObject(DataManager.shared.model)
+        .preferredColorScheme(preferredAppearance)
     }
 }
 

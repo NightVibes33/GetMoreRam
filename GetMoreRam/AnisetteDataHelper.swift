@@ -380,7 +380,6 @@ final class AnisetteDataHelper
         
         self.printOut("Using custom client_info")
                         
-        let defaults = UserDefaults.standard
         let configuredClientInfo = defaults.string(forKey: "CustomClientInfo")?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let configuredUserAgent = defaults.string(forKey: "CustomUserAgent")?

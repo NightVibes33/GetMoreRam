@@ -19,9 +19,10 @@ struct SettingsView: View {
     private let androidInfo = "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
     private let macInfo = "<MacBookPro18,3> <Mac OS X;14.5;23F79> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
     private let windowsInfo = "<PC> <Windows;10;19045> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
+    @AppStorage("AppearancePreference") private var appearancePreference = "System"
     @AppStorage("SelectedAppIcon") private var selectedAppIcon = "Default"
     @State private var iconError: String?
-    private let iconNames = ["Default", "Blue", "Purple", "Green", "Mono", "Glass", "Orbit", "Gradient", "Carbon", "Board"]
+
     @State var email = ""
     @State var teamId = ""
     @StateObject var viewModel : LoginViewModel
@@ -133,30 +134,36 @@ struct SettingsView: View {
             } header: {
                 Text("Authentication Identity")
             } footer: {
-                Text("Overrides the Client-Info and User-Agent used by remote V3 provisioning. On-device ODA supplies its own identity; these fields do not override SideSign's authentication headers.")
+                Text("These overrides are sent in the actual SideSign authentication session and remote V3 provisioning. On-device ODA still generates cryptographic anisette data locally. Invalid identifiers can cause Apple to reject login; use Reset to defaults to recover.")
             }
 
             Section {
-                Picker("App Icon", selection: $selectedAppIcon) {
-                    ForEach(iconNames, id: \.self) { name in
-                        Label(name, systemImage: "memorychip").tag(name)
-                    }
-                }
-                .onChange(of: selectedAppIcon) { _, choice in
-                    UIApplication.shared.setAlternateIconName(choice == "Default" ? nil : choice) { error in
-                        if let error {
-                            iconError = error.localizedDescription
-                            selectedAppIcon = UIApplication.shared.alternateIconName ?? "Default"
+                NavigationLink {
+                    IconAppearanceView()
+                } label: {
+                    HStack {
+                        Image("IconPreview-" + (UIApplication.shared.alternateIconName ?? "Default"))
+                            .resizable()
+                            .frame(width: 44, height: 44)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("App Icon")
+                            Text(UIApplication.shared.alternateIconName ?? "Default")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
+                        Spacer()
                     }
                 }
-                if let iconError {
-                    Text(iconError).foregroundStyle(.red).font(.footnote)
+                Picker("Appearance", selection: $appearancePreference) {
+                    Text("System").tag("System")
+                    Text("Light").tag("Light")
+                    Text("Dark").tag("Dark")
                 }
             } header: {
                 Text("Appearance")
             } footer: {
-                Text("Changes the actual Home Screen icon using iOS alternate icons. The icon may require iOS confirmation.")
+                Text("The icon picker reflects the actual Home Screen icon after iOS applies the change.")
             }
 
             Section {
@@ -491,4 +498,75 @@ struct SettingsView: View {
         }
     }
     
+}
+
+
+struct IconAppearanceView: View {
+    private let icons = [
+        ("Default", "Default"), ("Blue", "Blue Neon"),
+        ("Purple", "Purple"), ("Green", "Green"),
+        ("Mono", "Monochrome"), ("Glass", "Glass"),
+        ("Orbit", "Orbit"), ("Gradient", "Gradient"),
+        ("Carbon", "Carbon"), ("Board", "Board")
+    ]
+    @State private var selected = UIApplication.shared.alternateIconName ?? "Default"
+    @State private var changing = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        ScrollView {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 16)], spacing: 20) {
+                ForEach(icons, id: \.0) { icon in
+                    Button {
+                        changeIcon(to: icon.0)
+                    } label: {
+                        VStack(spacing: 9) {
+                            Image("IconPreview-" + icon.0)
+                                .resizable()
+                                .aspectRatio(1, contentMode: .fit)
+                                .clipShape(RoundedRectangle(cornerRadius: 22))
+                                .overlay(alignment: .topTrailing) {
+                                    if selected == icon.0 {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .symbolRenderingMode(.palette)
+                                            .foregroundStyle(.white, .blue)
+                                            .font(.title3)
+                                            .padding(5)
+                                    }
+                                }
+                            Text(icon.1).font(.caption).foregroundStyle(.primary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(changing)
+                }
+            }
+            .padding(16)
+        }
+        .navigationTitle("App Icon")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { selected = UIApplication.shared.alternateIconName ?? "Default" }
+        .alert("Unable to Change Icon", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: { Text(errorMessage ?? "") }
+    }
+
+    private func changeIcon(to name: String) {
+        guard !changing else { return }
+        guard UIApplication.shared.supportsAlternateIcons else {
+            errorMessage = "Alternate icons are not available for this installation."
+            return
+        }
+        changing = true
+        UIApplication.shared.setAlternateIconName(name == "Default" ? nil : name) { error in
+            DispatchQueue.main.async {
+                changing = false
+                selected = UIApplication.shared.alternateIconName ?? "Default"
+                if let error { errorMessage = error.localizedDescription }
+            }
+        }
+    }
 }

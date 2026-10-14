@@ -23,9 +23,15 @@ enum SideStoreAuthentication {
         verificationHandler: @escaping SideSign.DeveloperPortal.VerificationHandler,
         accountRepairHandler: @escaping SideSign.DeveloperPortal.AccountRepairHandler
     ) async throws -> (StosSign_Common.Account, StosSign_API.AppleAPISession) {
+        let preferences = UserDefaults.standard
+        let configuredInfo = preferences.string(forKey: "CustomClientInfo")?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let configuredAgent = preferences.string(forKey: "CustomUserAgent")?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let effectiveInfo = (configuredInfo?.isEmpty == false) ? configuredInfo! : clientInfo
+        let effectiveAgent = (configuredAgent?.isEmpty == false) ? configuredAgent! : userAgent
+
         var headers = SideSign.DeveloperPortal.shared.customHeaders
-        headers.grandSlam.userAgent = userAgent
-        headers.appleAuth.userAgent = userAgent
+        headers.grandSlam.userAgent = effectiveAgent
+        headers.appleAuth.userAgent = effectiveAgent
         SideSign.DeveloperPortal.shared.customHeaders = headers
 
         let sideAnisette = SideSign.AnisetteData(
@@ -35,8 +41,8 @@ enum SideStoreAuthentication {
             routingInfo: String(anisetteData.routingInfo),
             deviceID: anisetteData.deviceUniqueIdentifier,
             serialNumber: anisetteData.deviceSerialNumber,
-            clientInfo: clientInfo,
-            userAgent: userAgent,
+            clientInfo: effectiveInfo,
+            userAgent: effectiveAgent,
             clientTime: ISO8601DateFormatter().string(from: anisetteData.date),
             locale: anisetteData.locale.identifier,
             timeZone: anisetteData.timeZone.identifier
