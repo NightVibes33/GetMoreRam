@@ -29,39 +29,7 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        HStack(spacing: 16) {
-                            Image("IconPreview-" + selectedAppIcon)
-                                .resizable()
-                                .frame(width: 86, height: 86)
-                                .clipShape(RoundedRectangle(cornerRadius: 20))
-                                .accessibilityLabel("Installed GetMoreRam icon")
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("GetMoreRam").font(.title.bold())
-                                Text("Developer capability manager")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(14)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
-                        Text("Apple developer capability manager")
-                            .foregroundStyle(.secondary)
-                        Label("Apple Account", systemImage: "person.crop.circle")
-                            .font(.headline)
-                        AccountOverview()
-                        Button("Manage App IDs") { selectedTab = 1 }
-                            .buttonStyle(.borderedProminent)
-                        Button("Increased Memory Limit") { selectedTab = 2 }
-                            .buttonStyle(.bordered)
-                        Text("Enable the capability for an App ID, then re-sign and reinstall that app through SideStore.")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                    .padding()
-                }
-                .navigationTitle("Home")
+                HomeDashboard(appIDs: appIDs, selectedTab: $selectedTab)
             }
             .tabItem { Label("Home", systemImage: "house.fill") }.tag(0)
 
@@ -82,23 +50,201 @@ struct ContentView: View {
     }
 }
 
-private struct AccountOverview: View {
-    @EnvironmentObject private var model: SharedModel
+private struct HomeDashboard: View {
+    @ObservedObject var appIDs: AppIDViewModel
+    @Binding var selectedTab: Int
+    @EnvironmentObject private var account: SharedModel
+    @AppStorage("SelectedAppIcon") private var selectedAppIcon = "Default"
+    @State private var loading = false
+    @State private var loadError: String?
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if model.isLogin {
-                Text(model.account?.appleID ?? "Signed in")
-                Text("Team: \(model.team?.identifier ?? "Not selected")")
-                    .foregroundStyle(.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                VStack(spacing: 10) {
+                    Image("IconPreview-" + selectedAppIcon)
+                        .resizable()
+                        .frame(width: 114, height: 114)
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .shadow(color: Color.cyan.opacity(0.35), radius: 24)
+
+                    HStack(spacing: 0) {
+                        Text("Get").foregroundStyle(.white)
+                        Text("MoreRam").foregroundStyle(.cyan)
+                    }
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+
+                    Text("Increase JIT memory capability for your Apple Developer App IDs")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.68))
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 20)
+
+                Button { selectedTab = 3 } label: {
+                    HStack(spacing: 13) {
+                        Image(systemName: account.isLogin ? "checkmark.seal.fill" : "person.crop.circle.badge.questionmark")
+                            .font(.title2)
+                            .foregroundStyle(account.isLogin ? Color.green : Color.cyan)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(account.isLogin ? "Signed In" : "Sign In Required")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Text(account.isLogin ? (account.account?.appleID ?? "Apple account") : "Connect your Apple account in Settings")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.7))
+                                .lineLimit(1)
+                            if account.isLogin, let team = account.team {
+                                Text("Team ID  " + team.identifier)
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(.white.opacity(0.6))
+                            }
+                        }
+                        Spacer(minLength: 4)
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                    .padding(16)
+                    .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 19))
+                    .overlay(RoundedRectangle(cornerRadius: 19).strokeBorder(Color.cyan.opacity(0.3)))
+                }
+                .buttonStyle(.plain)
+
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                    actionTile("App IDs", subtitle: "Search & manage", symbol: "square.stack.3d.up.fill",
+                               first: .blue, second: .cyan) { selectedTab = 1 }
+                    actionTile("Memory", subtitle: "Increase limit", symbol: "memorychip",
+                               first: .purple, second: .pink) { selectedTab = 2 }
+                    actionTile("Refresh", subtitle: "Fetch App IDs", symbol: "arrow.clockwise",
+                               first: .cyan, second: .blue) { Task { await refresh() } }
+                    actionTile("Settings", subtitle: "Account & connection", symbol: "gearshape.fill",
+                               first: .gray, second: .blue) { selectedTab = 3 }
+                }
+
+                HStack {
+                    Text("Recent App IDs")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Spacer()
+                    if loading {
+                        ProgressView().tint(.cyan)
+                    } else if account.isLogin {
+                        Button("Refresh") { Task { await refresh() } }
+                            .font(.subheadline)
+                    }
+                }
+                if appIDs.appIDs.isEmpty {
+                    Text(account.isLogin
+                         ? "No App IDs loaded. Tap Refresh to fetch them from Apple."
+                         : "Sign in to load App IDs from your Apple developer team.")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .padding(.vertical, 8)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(appIDs.appIDs.prefix(4)), id: \.self) { app in
+                            NavigationLink {
+                                AppIDEditView(viewModel: app)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "app.badge")
+                                        .foregroundStyle(.cyan)
+                                        .frame(width: 26)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(app.appID.name)
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundStyle(.white)
+                                        Text(app.bundleID)
+                                            .font(.caption2)
+                                            .foregroundStyle(.white.opacity(0.65))
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundStyle(.white.opacity(0.6))
+                                }
+                                .padding(12)
+                            }
+                            if app !== appIDs.appIDs.prefix(4).last {
+                                Divider().overlay(.white.opacity(0.15))
+                            }
+                        }
+                    }
+                    .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 16))
+                }
+                if let loadError {
+                    Text(loadError).font(.footnote).foregroundStyle(.red)
+                }
+                Text("These are Apple developer-team App IDs, not necessarily apps installed on this iPhone.")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 30)
+        }
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.01, green: 0.035, blue: 0.1),
+                    Color(red: 0.012, green: 0.04, blue: 0.135),
+                    Color(red: 0.008, green: 0.018, blue: 0.05)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ).ignoresSafeArea()
+        )
+        .navigationBarHidden(true)
+        .onChange(of: account.isLogin) { _, signedIn in
+            if signedIn {
+                Task { await refresh() }
             } else {
-                Text("Not signed in")
-                Text("Sign in from Settings to manage App IDs.")
-                    .foregroundStyle(.secondary)
+                appIDs.appIDs = []
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .accessibilityIdentifier("screen.home")
+    }
+
+    private func actionTile(_ title: String, subtitle: String, symbol: String,
+                            first: Color, second: Color,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.system(size: 23, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Color.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
+                Spacer(minLength: 0)
+                Text(title).font(.headline).foregroundStyle(.white)
+                Text(subtitle).font(.caption2).foregroundStyle(.white.opacity(0.8))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 106)
+            .padding(14)
+            .background(
+                LinearGradient(colors: [first.opacity(0.85), second.opacity(0.45)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing),
+                in: RoundedRectangle(cornerRadius: 18)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("home.action." + title)
+    }
+
+    @MainActor
+    private func refresh() async {
+        guard account.isLogin else {
+            selectedTab = 3
+            return
+        }
+        guard !loading else { return }
+        loading = true
+        loadError = nil
+        defer { loading = false }
+        do { try await appIDs.fetchAppIDs() }
+        catch { loadError = error.detailedDescription }
     }
 }
 
