@@ -134,6 +134,20 @@ struct SettingsView: View {
                 } header: {
                     Text("Authentication identity")
                 }
+                if viewModel.choosingDelivery {
+                    Section {
+                        Picker("Delivery method", selection: $viewModel.selectedDeliveryChoice) {
+                            ForEach(viewModel.verificationChoices) { option in
+                                Text(option.label).tag(option.id)
+                            }
+                        }
+                        Button("Request Verification Code") {
+                            viewModel.submitDeliveryChoice()
+                        }
+                    } header: {
+                        Text("Apple two-factor authentication")
+                    }
+                }
                 if viewModel.needVerificationCode {
                     Section {
                         TextField("6-digit code", text: $viewModel.verificationCode)
@@ -142,6 +156,8 @@ struct SettingsView: View {
                             .disabled(viewModel.isVerificationCodeSubmitting)
                     } header: {
                         Text("Verification Code")
+                    } footer: {
+                        Text(viewModel.verificationMessage)
                     }
                 }
                 if let loginError = viewModel.loginError {
@@ -219,6 +235,10 @@ struct SettingsView: View {
     
     func loginButtonClicked() async {
         do {
+            if viewModel.choosingDelivery {
+                viewModel.submitDeliveryChoice()
+                return
+            }
             if viewModel.needVerificationCode {
                 viewModel.submitVerificationCode()
                 return
@@ -263,6 +283,9 @@ struct SettingsView: View {
     }
 
     private var continueButtonDisabled: Bool {
+        if viewModel.choosingDelivery {
+            return viewModel.selectedDeliveryChoice.isEmpty
+        }
         if viewModel.needVerificationCode {
             return viewModel.isVerificationCodeSubmitting ||
                 viewModel.verificationCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

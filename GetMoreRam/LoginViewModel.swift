@@ -8,6 +8,7 @@ import SwiftUI
 import StosSign_API
 import StosSign_Auth
 import StosSign_Common
+import SideSign
 
 @MainActor
 class LoginViewModel: ObservableObject {
@@ -22,9 +23,14 @@ class LoginViewModel: ObservableObject {
     @Published var logs = ""
     @Published var loginError: String? = nil
     @Published var loginStage = ""
-    @Published var availableTeams: [Team] = []
+    @Published var availableTeams: [StosSign_Common.Team] = []
+    @Published var choosingDelivery = false
+    @Published var verificationChoices: [DeliveryChoice] = []
+    @Published var selectedDeliveryChoice = ""
+    @Published var verificationMessage = ""
     
     private var verificationCodeHandler: ((String?) -> Void)?
+    private var sideSignContinuation: CheckedContinuation<SideSign.TwoFactorResponse, Never>?
     private var isAuthenticationCancellationRequested = false
     
     func submitVerificationCode() {
@@ -34,6 +40,11 @@ class LoginViewModel: ObservableObject {
         self.verificationCodeHandler = nil
         isVerificationCodeSubmitting = true
         loginStage = "Submitting verification code"
+        if let continuation = sideSignContinuation {
+            sideSignContinuation = nil
+            continuation.resume(returning: .verificationCode(verificationCode.trimmingCharacters(in: .whitespacesAndNewlines)))
+            return
+        }
         verificationCodeHandler(verificationCode.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
@@ -49,6 +60,10 @@ class LoginViewModel: ObservableObject {
         isVerificationCodeSubmitting = false
 
         verificationCodeHandler?(nil)
+        let sideSignContinuation = sideSignContinuation
+        self.sideSignContinuation = nil
+        sideSignContinuation?.resume(returning: .cancel)
+        choosingDelivery = false
     }
     
     func authenticate() async throws -> Bool {
@@ -72,6 +87,8 @@ class LoginViewModel: ObservableObject {
 
         defer {
             verificationCodeHandler = nil
+            sideSignContinuation = nil
+            choosingDelivery = false
             needVerificationCode = false
             verificationCode = ""
             isLoginInProgress = false
@@ -83,14 +100,22 @@ class LoginViewModel: ObservableObject {
             let anisetteData = try await AnisetteDataHelper.shared.getAnisetteData()
             loginStage = "Authenticating with Apple"
 
-            let (account, session) = try await AppleAPI.shared.authenticate(appleID: appleID, password: password, anisetteData: anisetteData) { [weak self] completionHandler in
-                guard let self else {
-                    completionHandler(nil)
-                    return
+            let (account, session) = try await SideStoreAuthentication.authenticate(
+                appleID: appleID,
+                password: password,
+                anisetteData: anisetteData,
+                verificationHandler: { [weak self] request in
+                    guard let self else { return .cancel }
+                    return await self.requestSideStoreVerification(request)
+                },
+                accountRepairHandler: { [weak self] url, message in
+                    await MainActor.run {
+                        self?.loginError = message + "\n" + url.absoluteString
+                        self?.loginStage = "Apple account verification required"
+                    }
+                    return .cancel
                 }
-
-                self.prepareForVerification(using: completionHandler)
-            }
+            )
 
             guard !isAuthenticationCancellationRequested else {
                 throw CancellationError()
@@ -122,6 +147,70 @@ class LoginViewModel: ObservableObject {
         }
     }
 
+    struct DeliveryChoice: Identifiable {
+        let id: String
+        let label: String
+        let mode: SideSign.TwoFactorDeliveryMode
+        let phoneID: String?
+    }
+
+    func submitDeliveryChoice() {
+        guard choosingDelivery,
+              let choice = verificationChoices.first(where: { $0.id == selectedDeliveryChoice }),
+              let completion = sideSignContinuation else { return }
+        sideSignContinuation = nil
+        choosingDelivery = false
+        loginStage = "Requesting Apple verification code"
+        switch choice.mode {
+        case .trustedDevice:
+            completion.resume(returning: .requestTrustedDevice)
+        case .sms:
+            completion.resume(returning: .requestSMS(phoneID: choice.phoneID ?? "1"))
+        case .voice:
+            completion.resume(returning: .requestVoice(phoneID: choice.phoneID ?? "1"))
+        }
+    }
+
+    private func requestSideStoreVerification(_ request: SideSign.TwoFactorRequest) async -> SideSign.TwoFactorResponse {
+        if isAuthenticationCancellationRequested { return .cancel }
+        verificationCode = ""
+        loginError = request.error
+        switch request {
+        case .selectDeliveryMethod(let preferredMode, let phones):
+            var choices = [DeliveryChoice(id: "trusted", label: "Trusted Apple device", mode: .trustedDevice, phoneID: nil)]
+            for phone in phones {
+                choices.append(DeliveryChoice(id: "sms-" + phone.id, label: "SMS to " + phone.number, mode: .sms, phoneID: phone.id))
+                choices.append(DeliveryChoice(id: "voice-" + phone.id, label: "Call " + phone.number, mode: .voice, phoneID: phone.id))
+            }
+            if phones.isEmpty {
+                choices.append(DeliveryChoice(id: "sms-1", label: "SMS to trusted number", mode: .sms, phoneID: "1"))
+            }
+            verificationChoices = choices
+            selectedDeliveryChoice = choices.first(where: { $0.mode == preferredMode })?.id ?? choices[0].id
+            choosingDelivery = true
+            needVerificationCode = false
+            loginStage = "Choose how to receive your code"
+        case .trustedDevice(let error):
+            verificationMessage = error ?? "Enter the code on your trusted device."
+            needVerificationCode = true
+            choosingDelivery = false
+            loginStage = "Enter trusted-device verification code"
+        case .sms(_, _, let error):
+            verificationMessage = error ?? "Enter the SMS verification code."
+            needVerificationCode = true
+            choosingDelivery = false
+            loginStage = "Enter SMS verification code"
+        case .voice(_, _, let error):
+            verificationMessage = error ?? "Enter the code from the verification call."
+            needVerificationCode = true
+            choosingDelivery = false
+            loginStage = "Enter voice verification code"
+        }
+        return await withCheckedContinuation { continuation in
+            sideSignContinuation = continuation
+        }
+    }
+
     private func prepareForVerification(using handler: @escaping (String?) -> Void) {
         guard !isAuthenticationCancellationRequested else {
             handler(nil)
@@ -135,7 +224,7 @@ class LoginViewModel: ObservableObject {
         isVerificationCodeSubmitting = false
     }
     
-    func fetchTeams(for account: Account, session: AppleAPISession) async throws -> [Team]
+    func fetchTeams(for account: StosSign_Common.Account, session: AppleAPISession) async throws -> [StosSign_Common.Team]
     {
 
         let fetchedTeams = try await AppleAPI.shared.fetchTeamsForAccount(account: account, session: session)
