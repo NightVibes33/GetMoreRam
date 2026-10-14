@@ -18,6 +18,7 @@ struct SettingsView: View {
     @AppStorage("IdentityPreset") private var identityPreset = "Custom"
     @AppStorage("UseOnDeviceAnisette") private var useOnDeviceAnisette = true
     private let androidInfo = "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
+    private let androidUserAgent = "AuthKit/1 (Android; Android 14) (com.apple.akd/1.0)"
     private let macInfo = "<MacBookPro18,3> <Mac OS X;14.5;23F79> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
     private let windowsInfo = "<PC> <Windows;10;19045> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
     @AppStorage("AppearancePreference") private var appearancePreference = "System"
@@ -177,6 +178,7 @@ struct SettingsView: View {
         }
         .onAppear {
             selectedAppIcon = UIApplication.shared.alternateIconName ?? "Default"
+            migrateLegacyAndroidPreset()
             #if DEBUG
             simulatorClientInfoRoute = ProcessInfo.processInfo.arguments.contains("-UITestClientIdentity")
             simulatorIconPickerRoute = ProcessInfo.processInfo.arguments.contains("-UITestIconPicker")
@@ -209,6 +211,18 @@ struct SettingsView: View {
         .navigationTitle("Anisette")
     }
 
+    // Repair the previous Android preset only when its exact generated
+    // values are still saved. Do not change a user's custom identity or
+    // the Windows preset that already works on their account.
+    private func migrateLegacyAndroidPreset() {
+        guard identityPreset == "Android",
+              customClientInfo == androidInfo,
+              customUserAgent == "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)" else {
+            return
+        }
+        customUserAgent = androidUserAgent
+    }
+
     private var identitySettings: some View {
         Form {
             Section {
@@ -222,7 +236,7 @@ struct SettingsView: View {
                     switch selection {
                     case "Android":
                         customClientInfo = androidInfo
-                        customUserAgent = "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
+                        customUserAgent = androidUserAgent
                     case "macOS":
                         customClientInfo = macInfo
                         customUserAgent = "AuthKit/1 (Macintosh; OS X 14.5) (com.apple.akd/1.0)"
