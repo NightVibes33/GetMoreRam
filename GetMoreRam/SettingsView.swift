@@ -251,7 +251,11 @@ struct SettingsView: View {
             if let appleError = error as? AppleAPIError,
                case .customError(let code, _) = appleError,
                code == -22411 {
-                viewModel.loginError = "Apple rejected this request before a usable 2FA session was available (-22411). The verification code cannot be submitted until Apple accepts this stage. Retry later or import a working SideStore account.\n\n" + error.detailedDescription
+                if error.localizedDescription.contains("[GSA stage: apptokens]") {
+                    viewModel.loginError = "Apple denied the Xcode developer-services token request (-22411). Anisette and the earlier authentication exchange succeeded, but the token was not issued. A verification code being sent does not guarantee that this final step succeeded. Check for account security prompts at account.apple.com, or retry later.\n\n" + error.detailedDescription
+                } else {
+                    viewModel.loginError = "Apple rejected this authentication stage (-22411). If account security verification is requested, complete it at account.apple.com before retrying.\n\n" + error.detailedDescription
+                }
             } else {
                 viewModel.loginError = error.detailedDescription
             }

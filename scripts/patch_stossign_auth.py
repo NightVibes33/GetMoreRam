@@ -43,6 +43,81 @@ def patch_source(source: str) -> str:
         r'                let localizedDescription = "[GSA stage: \(stage)] \(errorDescription) (\(errorCode))"',
         "GrandSlam error-stage diagnostics",
     )
+    # Extend the pinned StosSign library's 2FA challenge routing.
+    source = replace_exact(
+        source,
+        'let authType = statusDictionary["au"] as? String\n        switch authType {',
+        'let authType = (statusDictionary["au"] as? String)\n'
+        '            ?? (verificationResponse["au"] as? String)\n'
+        '            ?? ((statusDictionary["hsc"] as? Int) == 409 ? "pushedCode" : nil)\n'
+        '        switch authType {',
+        "challenge detection",
+    )
+    source = replace_exact(
+        source, 'case "trustedDeviceSecondaryAuth":',
+        'case "trustedDeviceSecondaryAuth", "trustedDevice", "pushedCode":',
+        "trusted-device states",
+    )
+    source = replace_exact(
+        source, 'case "secondaryAuth":',
+        'case "secondaryAuth", "sms", "phone", "voice":',
+        "phone states",
+    )
+    source = replace_exact(
+        source,
+        'try await requestTrustedDeviceTwoFactorCode(\n'
+        '                dsid: dsid,\n'
+        '                idmsToken: idmsToken,\n'
+        '                anisetteData: anisetteData,\n'
+        '                verificationHandler: verificationHandler\n'
+        '            )',
+        'try await requestTrustedDeviceTwoFactorCode(\n'
+        '                dsid: dsid,\n'
+        '                idmsToken: idmsToken,\n'
+        '                anisetteData: anisetteData,\n'
+        '                verificationHandler: verificationHandler,\n'
+        '                codeAlreadySent: authType == "pushedCode"\n'
+        '            )',
+        "trusted-code request",
+    )
+    source = replace_exact(
+        source,
+        '        default:\n'
+        '            guard let sessionKey = decryptedDictionary["sk"] as? Data,',
+        '        case "repair":\n'
+        '            throw AppleAPIError.customError(code: -22411, message: '
+        '"Apple requires additional account security verification. Visit https://account.apple.com and complete any security review.")\n'
+        '        default:\n'
+        '            if let authType, !authType.isEmpty {\n'
+        '                throw AppleAPIError.customError(code: -22411, message: '
+        '"Unsupported Apple authentication challenge: \(authType).")\n'
+        '            }\n'
+        '            guard let sessionKey = decryptedDictionary["sk"] as? Data,',
+        "do not request app tokens before challenge",
+    )
+    source = replace_exact(
+        source,
+        'verificationHandler: @escaping (@escaping (String?) -> Void) async -> Void\n'
+        '    ) async throws {\n'
+        '        let requestURL = URL(string: "https://gsa.apple.com/auth/verify/trusteddevice")!',
+        'verificationHandler: @escaping (@escaping (String?) -> Void) async -> Void,\n'
+        '        codeAlreadySent: Bool = false\n'
+        '    ) async throws {\n'
+        '        let requestURL = URL(string: "https://gsa.apple.com/auth/verify/trusteddevice")!',
+        "trusted-device signature",
+    )
+    source = replace_exact(
+        source,
+        '        let (_, _) = try await AppleAPI.shared.session.data(for: request)\n'
+        '        \n'
+        '        let verificationCode = try await withCheckedThrowingContinuation',
+        '        if !codeAlreadySent {\n'
+        '            let (_, _) = try await AppleAPI.shared.session.data(for: request)\n'
+        '        }\n'
+        '        \n'
+        '        let verificationCode = try await withCheckedThrowingContinuation',
+        "avoid duplicate 2FA push",
+    )
     return source
 
 
