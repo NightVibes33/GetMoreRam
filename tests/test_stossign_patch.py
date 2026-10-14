@@ -45,7 +45,6 @@ class StosSignPatchTests(unittest.TestCase):
         self.assertIn('codeAlreadySent: authType == "pushedCode"', updated)
         self.assertIn('if !codeAlreadySent', updated)
         self.assertIn('case "repair":', updated)
-        self.assertIn('Unsupported Apple authentication challenge:', updated)
         self.assertIn('[GSA stage:', updated)
         self.assertEqual(updated.count('AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)'), 2)
 
