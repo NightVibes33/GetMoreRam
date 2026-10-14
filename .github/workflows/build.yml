@@ -42,13 +42,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          xcodebuild -resolvePackageDependencies -project GetMoreRam.xcodeproj -scheme GetMoreRam
+          xcodebuild -resolvePackageDependencies -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages" -project GetMoreRam.xcodeproj -scheme GetMoreRam
+      - name: Align StosSign identity and add Apple auth error diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/patch_stossign_auth.py "$RUNNER_TEMP/SourcePackages/checkouts/StosSign/Sources/StosSign_Auth/Authentication.swift"
       - name: Archive without code signing
         shell: bash
         run: |
           set -euo pipefail
           xcodebuild archive \
             -project GetMoreRam.xcodeproj \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages" \
             -scheme GetMoreRam \
             -configuration Release \
             -sdk iphoneos \
