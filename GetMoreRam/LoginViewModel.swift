@@ -162,8 +162,9 @@ class LoginViewModel: ObservableObject {
             if isAuthenticationCancellationRequested {
                 throw CancellationError()
             }
-            loginStage = "Apple authentication failed"
-            logging(text: "Authentication error: \(error.localizedDescription)")
+            let failedStage = loginStage
+            loginStage = "Failed during \(failedStage)"
+            logging(text: "Authentication error during \(failedStage): \(error.detailedDescription)")
             throw error
         }
     }

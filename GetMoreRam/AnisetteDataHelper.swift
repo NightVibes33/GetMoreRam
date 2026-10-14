@@ -42,11 +42,20 @@ final class AnisetteDataHelper
     func getAnisetteData(refresh: Bool = false) async throws -> AnisetteData
     {
         
-        if url == nil {
-            throw "No Anisette Server Found!"
+        // Honor live @AppStorage configuration instead of the launch-time URL.
+        if let configured = UserDefaults.standard.string(forKey: "AnisetteServer") {
+            guard let parsed = URL(string: configured),
+                  let scheme = parsed.scheme?.lowercased(),
+                  ["https", "http"].contains(scheme),
+                  parsed.host != nil else {
+                throw "Invalid Anisette Server URL. Check Settings."
+            }
+            url = parsed
         }
-        
-        self.printOut("Anisette URL: \(self.url!.absoluteString)")
+        guard let server = url else {
+            throw "No Anisette Server Found! Check Settings."
+        }
+        self.printOut("Anisette host: \(server.host ?? "unknown")")
         
         let ans : AnisetteData
         if let identifier = Keychain.shared.identifier,
@@ -63,7 +72,7 @@ final class AnisetteDataHelper
     func extractAnisetteData(_ data: Data, _ response: HTTPURLResponse?, v3: Bool) async throws -> AnisetteData {
         // make sure this JSON is in the format we expect
         // convert data to json
-        if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: String] {
+        if let json = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: String] {
             if v3 {
                 if json["result"] == "GetHeadersError" {
                     let message = json["message"]
@@ -130,11 +139,10 @@ final class AnisetteDataHelper
                 }
             }
         } else {
-            if v3 {
-                throw "Invalid anisette (the returned data may not be in JSON)"
-            } else {
-                throw "Invalid anisette (the returned data may not be in JSON)"
-            }
+            let status = response?.statusCode ?? 0
+            let contentType = response?.mimeType ?? "unknown"
+            self.printOut("Anisette V3 returned invalid JSON: HTTP \(status), \(contentType), \(data.count) bytes. Response body withheld.")
+            throw "Anisette V3 returned an unreadable response (HTTP \(status), \(contentType)). Check the server URL and network connection in Settings."
         }
     }
     
@@ -204,7 +212,7 @@ final class AnisetteDataHelper
     
     private func handleProvisioningMessage(_ string: String, socket: URLSessionWebSocketTask) async throws -> Bool {
         guard let data = string.data(using: .utf8),
-              let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+              let json = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] else {
             throw "The server didn't give valid JSON"
         }
         
@@ -428,8 +436,12 @@ final class AnisetteDataHelper
         ], options: [])
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let (data, response) = try await URLSession.shared.data(for: request)
-        
-        return try await self.extractAnisetteData(data, response as? HTTPURLResponse, v3: true)
+        let httpResponse = response as? HTTPURLResponse
+        let status = httpResponse?.statusCode ?? 0
+        guard (200...299).contains(status) else {
+            throw "Anisette V3 /get_headers request failed (HTTP \(status), \(httpResponse?.mimeType ?? "unknown")). Verify the configured server is responding."
+        }
+        return try await self.extractAnisetteData(data, httpResponse, v3: true)
 
     }
     

@@ -286,6 +286,8 @@ struct SettingsView: View {
                 } else {
                     viewModel.loginError = "Apple rejected this authentication stage (-22411). If account security verification is requested, complete it at account.apple.com before retrying.\n\n" + error.detailedDescription
                 }
+            } else if (error as NSError).code == 3840 {
+                viewModel.loginError = "Unexpected server response during \(viewModel.loginStage). Apple developer services or anisette may have returned the wrong data format. This is not an incorrect verification code.\n\n" + error.detailedDescription
             } else {
                 viewModel.loginError = error.detailedDescription
             }

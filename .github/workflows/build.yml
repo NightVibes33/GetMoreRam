@@ -52,6 +52,11 @@ jobs:
           set -euo pipefail
           python3 scripts/patch_stossign_auth.py "$RUNNER_TEMP/SourcePackages/checkouts/StosSign/Sources/StosSign_Auth/Authentication.swift"
           grep -n 'AuthKit/1 (Macintosh; OS X 26.6)' "$RUNNER_TEMP/SourcePackages/checkouts/StosSign/Sources/StosSign_Auth/Authentication.swift"
+      - name: Allow Apple's developer API to return JSON or plist
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/patch_stossign_api_response.py "$RUNNER_TEMP/SourcePackages/checkouts/StosSign/Sources/StosSign_API/AppleAPI.swift"
       - name: Archive without code signing
         shell: bash
         run: |
