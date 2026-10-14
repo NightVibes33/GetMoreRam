@@ -56,26 +56,90 @@ struct AppIDView : View {
     
     @State private var errorShow = false
     @State private var errorInfo = ""
-    
+    @State private var searchText = ""
+    @State private var isSearchPresented = false
+    @FocusState private var isSearchFocused: Bool
+
+    private var filteredAppIDs: [AppIDModel] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return viewModel.appIDs }
+
+        return viewModel.appIDs.filter { app in
+            app.appID.name.localizedStandardContains(query) ||
+            app.bundleID.localizedStandardContains(query)
+        }
+    }
+
     var body: some View {
         NavigationView {
             Form {
+                if isSearchPresented {
+                    Section {
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundStyle(.secondary)
+
+                            TextField("Search app name or bundle ID", text: $searchText)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .focused($isSearchFocused)
+                                .onAppear { isSearchFocused = true }
+
+                            if !searchText.isEmpty {
+                                Button {
+                                    searchText = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Clear Search")
+                            }
+                        }
+                    } header: {
+                        Text("Search")
+                    }
+                }
+
                 Section {
-                    ForEach(viewModel.appIDs, id: \.self) { appID in
-                        NavigationLink {
-                            AppIDEditView(viewModel: appID)
-                        } label: {
-                            Text(appID.bundleID)
+                    if filteredAppIDs.isEmpty {
+                        Text(viewModel.appIDs.isEmpty
+                             ? "Tap Refresh to load your developer App IDs."
+                             : "No matching App IDs.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(filteredAppIDs, id: \.self) { appID in
+                            NavigationLink {
+                                AppIDEditView(viewModel: appID)
+                            } label: {
+                                Text(appID.bundleID)
+                            }
                         }
                     }
                 } header: {
                     Text("App IDs")
                 }
-                
+
                 Section {
                     Button("Refresh") {
                         Task { await refreshButtonClicked() }
                     }
+                }
+            }
+            .navigationTitle("App IDs")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if isSearchPresented {
+                            searchText = ""
+                            isSearchFocused = false
+                        }
+                        isSearchPresented.toggle()
+                    } label: {
+                        Label(isSearchPresented ? "Close Search" : "Search App IDs",
+                              systemImage: isSearchPresented ? "xmark" : "magnifyingglass")
+                    }
+                    .accessibilityLabel(isSearchPresented ? "Close Search" : "Search App IDs")
                 }
             }
             .alert("Error", isPresented: $errorShow){
