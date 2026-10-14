@@ -41,3 +41,7 @@ The Actions build validates the packaged IPA's `MinimumOSVersion=18.0` and uses 
 GetMoreRam **v1.1 (build 2)** adds the On-device Anisette switch and a **Settings → Build Information** section showing the installed app version and Anisette mode. Earlier builds (including v1.0 build 1) do not have these controls.
 
 **Install the newly downloaded IPA using SideStore's IPA import/install process, not just Refresh on the existing app.** Refresh re-signs an already installed app; it does not import new source code. Sign/install this IPA with the same Apple account as before, then open Settings and verify `App Version = 1.1 (2)` and `Anisette Mode = On-device ODA`. Do not use Clean Up Keychain to force an update.
+
+## Icon switcher and built-in icon assets
+
+The nine alternate icon names in the iOS asset catalog are `Blue`, `Purple`, `Green`, `Mono`, `Glass`, `Orbit`, `Gradient`, `Carbon`, and `Board`. The primary `AppIcon` is the Default design. A deterministic macOS Swift renderer generates ten 1024×1024 PNG app icons and matching picker preview assets before Xcode archives the IPA. Icons are styled after the supplied ten-design chip reference; the original higher-resolution individual PNG crops are available separately in the ChatGPT delivery. The build verifies every alternate name appears in the signed-app metadata before distributing the unsigned IPA. The iOS icon picker only marks the choice after `UIApplication.setAlternateIconName` completes without error.

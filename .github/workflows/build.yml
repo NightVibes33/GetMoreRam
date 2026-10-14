@@ -41,6 +41,15 @@ jobs:
           sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
           echo "iOS SDK: $sdk"
           [[ "$sdk" == 27* ]]
+      - name: Generate app icon assets and appearance previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          swift scripts/generate_app_icons.swift
+          for name in AppIcon Blue Purple Green Mono Glass Orbit Gradient Carbon Board; do
+            test -f "GetMoreRam/Assets.xcassets/$name.appiconset/icon.png"
+            test -f "GetMoreRam/Assets.xcassets/$name.appiconset/Contents.json"
+          done
       - name: Resolve Swift dependencies
         shell: bash
         run: |
@@ -92,6 +101,11 @@ jobs:
             exit 1
           fi
           echo "Unsigned application verified."
+          /usr/libexec/PlistBuddy -c "Print CFBundleIcons:CFBundleAlternateIcons" "$app/Info.plist"
+          for icon in Blue Purple Green Mono Glass Orbit Gradient Carbon Board; do
+            /usr/libexec/PlistBuddy -c "Print CFBundleIcons:CFBundleAlternateIcons:$icon" "$app/Info.plist" >/dev/null
+            echo "Registered alternate icon: $icon"
+          done
       - name: Package unsigned IPA
         shell: bash
         run: |
