@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var appIDs = AppIDViewModel()
     @StateObject private var login = LoginViewModel()
+    @StateObject private var artwork = AppIconArtworkStore()
     @State private var selectedTab: Int
 
     init() {
@@ -10,7 +11,7 @@ struct ContentView: View {
         let requested = ProcessInfo.processInfo.arguments
             .first(where: { $0.hasPrefix("-UITestTab=") })
             .flatMap { Int($0.replacingOccurrences(of: "-UITestTab=", with: "")) }
-        _selectedTab = State(initialValue: min(max(requested ?? 0, 0), 3))
+        _selectedTab = State(initialValue: min(max(requested ?? 0, 0), 2))
         #else
         _selectedTab = State(initialValue: 0)
         #endif
@@ -33,19 +34,17 @@ struct ContentView: View {
             }
             .tabItem { Label("Home", systemImage: "house.fill") }.tag(0)
 
-            AppIDView(viewModel: appIDs)
-                .tabItem { Label("App IDs", systemImage: "square.stack.3d.up.fill") }.tag(1)
-
             MemoryCapabilityView(viewModel: appIDs)
-            .tabItem { Label("Memory", systemImage: "memorychip") }.tag(2)
+            .tabItem { Label("Memory", systemImage: "memorychip") }.tag(1)
 
             NavigationStack {
                 SettingsView(viewModel: login)
                     .navigationTitle("Settings")
             }
-            .tabItem { Label("Settings", systemImage: "gearshape.fill") }.tag(3)
+            .tabItem { Label("Settings", systemImage: "gearshape.fill") }.tag(2)
         }
         .environmentObject(DataManager.shared.model)
+        .environmentObject(artwork)
         .preferredColorScheme(preferredAppearance)
     }
 }
@@ -82,7 +81,7 @@ private struct HomeDashboard: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 20)
 
-                Button { selectedTab = 3 } label: {
+                Button { selectedTab = 2 } label: {
                     HStack(spacing: 13) {
                         Image(systemName: account.isLogin ? "checkmark.seal.fill" : "person.crop.circle.badge.questionmark")
                             .font(.title2)
@@ -112,74 +111,24 @@ private struct HomeDashboard: View {
                 .buttonStyle(.plain)
 
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                    actionTile("App IDs", subtitle: "Search & manage", symbol: "square.stack.3d.up.fill",
-                               first: .blue, second: .cyan) { selectedTab = 1 }
-                    actionTile("Memory", subtitle: "Increase limit", symbol: "memorychip",
-                               first: .purple, second: .pink) { selectedTab = 2 }
-                    actionTile("Refresh", subtitle: "Fetch App IDs", symbol: "arrow.clockwise",
+                    actionTile("Memory", subtitle: "Manage capability", symbol: "memorychip",
+                               first: .purple, second: .pink) { selectedTab = 1 }
+                    actionTile("Refresh", subtitle: "Load applications", symbol: "arrow.clockwise",
                                first: .cyan, second: .blue) { Task { await refresh() } }
                     actionTile("Settings", subtitle: "Account & connection", symbol: "gearshape.fill",
-                               first: .gray, second: .blue) { selectedTab = 3 }
+                               first: .gray, second: .blue) { selectedTab = 2 }
                 }
 
-                HStack {
-                    Text("Recent App IDs")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    Spacer()
-                    if loading {
-                        ProgressView().tint(.cyan)
-                    } else if account.isLogin {
-                        Button("Refresh") { Task { await refresh() } }
-                            .font(.subheadline)
-                    }
-                }
-                if appIDs.appIDs.isEmpty {
-                    Text(account.isLogin
-                         ? "No App IDs loaded. Tap Refresh to fetch them from Apple."
-                         : "Sign in to load App IDs from your Apple developer team.")
+                if loading {
+                    ProgressView("Loading applications…").tint(.cyan)
+                } else if account.isLogin {
+                    Text(String(appIDs.appIDs.count) + " developer applications available in Memory")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.7))
-                        .padding(.vertical, 8)
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(Array(appIDs.appIDs.prefix(4)), id: \.self) { app in
-                            NavigationLink {
-                                AppIDEditView(viewModel: app)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "app.badge")
-                                        .foregroundStyle(.cyan)
-                                        .frame(width: 26)
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(app.appID.name)
-                                            .font(.subheadline.weight(.medium))
-                                            .foregroundStyle(.white)
-                                        Text(app.bundleID)
-                                            .font(.caption2)
-                                            .foregroundStyle(.white.opacity(0.65))
-                                            .lineLimit(1)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                        .foregroundStyle(.white.opacity(0.6))
-                                }
-                                .padding(12)
-                            }
-                            if app !== appIDs.appIDs.prefix(4).last {
-                                Divider().overlay(.white.opacity(0.15))
-                            }
-                        }
-                    }
-                    .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 16))
                 }
                 if let loadError {
                     Text(loadError).font(.footnote).foregroundStyle(.red)
                 }
-                Text("These are Apple developer-team App IDs, not necessarily apps installed on this iPhone.")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.6))
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 30)
@@ -236,7 +185,7 @@ private struct HomeDashboard: View {
     @MainActor
     private func refresh() async {
         guard account.isLogin else {
-            selectedTab = 3
+            selectedTab = 2
             return
         }
         guard !loading else { return }
@@ -253,6 +202,9 @@ private struct MemoryCapabilityView: View {
     @State private var search = ""
     @State private var loading = false
     @State private var error: String?
+    @AppStorage("SideloadIconSourceURLs") private var iconSources = AppIconArtworkStore.defaultSources
+    @EnvironmentObject private var artwork: AppIconArtworkStore
+    @EnvironmentObject private var account: SharedModel
 
     private var matches: [AppIDModel] {
         let q = search.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -269,21 +221,35 @@ private struct MemoryCapabilityView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-                Section("Choose App ID") {
+                Section("Applications") {
                     if viewModel.appIDs.isEmpty {
-                        Text("Sign in and load App IDs to select a target.")
+                        Text(account.isLogin ? "Refresh to load your applications." : "Sign in under Settings to load applications.")
                             .foregroundStyle(.secondary)
+                    } else if matches.isEmpty {
+                        Text("No matching applications.").foregroundStyle(.secondary)
                     }
                     ForEach(matches, id: \.self) { app in
                         NavigationLink {
                             AppIDEditView(viewModel: app)
                         } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(app.appID.name)
-                                Text(app.bundleID).font(.caption).foregroundStyle(.secondary)
+                            HStack(spacing: 12) {
+                                AppArtworkIconView(bundleID: app.bundleID, name: app.appID.name, size: 44)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(app.appID.name)
+                                    Text(app.bundleID).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                }
                             }
                         }
                     }
+                }
+                Section {
+                    HStack(spacing: 8) {
+                        Image(systemName: "photo.stack")
+                        Text(artwork.status).font(.footnote)
+                    }
+                    .foregroundStyle(.secondary)
+                } footer: {
+                    Text("Original sideload-source artwork is automatically matched by bundle ID. No App Store lookup or installed-app scan.")
                 }
                 Section {
                     Text("After enabling, re-sign and reinstall the target IPA with SideStore. The request response alone does not verify the installed provisioning profile.")
@@ -308,7 +274,16 @@ private struct MemoryCapabilityView: View {
                     .disabled(loading)
                 }
             }
-            .alert("Unable to load App IDs", isPresented: Binding(
+            .task(id: viewModel.appIDs.map(\.bundleID).sorted().joined(separator: "|") + "|" + iconSources) {
+                if account.isLogin && viewModel.appIDs.isEmpty && !loading {
+                    loading = true
+                    defer { loading = false }
+                    do { try await viewModel.fetchAppIDs() }
+                    catch { error = error.localizedDescription }
+                }
+                await artwork.refresh(bundleIDs: viewModel.appIDs.map(\.bundleID), sources: iconSources)
+            }
+            .alert("Unable to load applications", isPresented: Binding(
                 get: { error != nil },
                 set: { if !$0 { error = nil } }
             )) { Button("OK", role: .cancel) { error = nil } }

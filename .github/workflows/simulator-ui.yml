@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   simulator:
-    name: Build and capture four real iPhone screens
+    name: Build and capture three real iPhone tabs and Settings subpanels
     runs-on: xcode-27
     timeout-minutes: 90
     steps:
@@ -52,7 +52,7 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
 
-      - name: Capture Home, App IDs, Memory and Settings
+      - name: Capture Home, Memory, Settings and subpanels
         shell: bash
         run: |
           set -euo pipefail
@@ -63,20 +63,20 @@ jobs:
           xcrun simctl ui "$SIMULATOR_UDID" appearance dark
           xcrun simctl status_bar "$SIMULATOR_UDID" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100 || true
           mkdir -p simulator-screenshots
-          names=(Home AppIDs Memory Settings ClientInfo IconPicker)
-          for i in 0 1 2 3 4 5; do
+          names=(Home Memory Settings ClientInfo IconPicker)
+          for i in 0 1 2 3 4; do
             xcrun simctl terminate "$SIMULATOR_UDID" "$bundle" >/dev/null 2>&1 || true
             args=(-UITestScreenshot)
-            if (( i >= 4 )); then args+=("-UITestTab=3"); else args+=("-UITestTab=$i"); fi
-            if (( i == 4 )); then args+=("-UITestClientIdentity"); fi
-            if (( i == 5 )); then args+=("-UITestIconPicker"); fi
+            if (( i >= 3 )); then args+=("-UITestTab=2"); else args+=("-UITestTab=$i"); fi
+            if (( i == 3 )); then args+=("-UITestClientIdentity"); fi
+            if (( i == 4 )); then args+=("-UITestIconPicker"); fi
             xcrun simctl launch "$SIMULATOR_UDID" "$bundle" "${args[@]}"
             sleep 5
             image="simulator-screenshots/$((i+1))-${names[$i]}.png"
             xcrun simctl io "$SIMULATOR_UDID" screenshot "$image"
             test -s "$image"
           done
-          test "$(find simulator-screenshots -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" -eq 6
+          test "$(find simulator-screenshots -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" -eq 5
 
       - name: Upload real simulator screenshots
         if: always()

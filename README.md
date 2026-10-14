@@ -4,8 +4,8 @@ A simple [StosSign](https://github.com/stossy11/StosSign) wrapper app that allow
 # How to use
 1. Install GetMoreRam (sign its unsigned IPA with SideStore first).
 2. Open **Settings** and sign in using the **same Apple account and developer team that SideStore uses to sign the target app**.
-3. Open **App IDs**, tap **Refresh**, then tap the **magnifying-glass search button** to find your target app by name or bundle identifier. This lists Apple developer-team App IDs, **not necessarily the apps currently installed on your iPhone**.
-4. Select the target App ID, then tap **Add Increased Memory Limit** to request `INCREASED_MEMORY_LIMIT` from Apple.
+3. Open **Memory** to search the Apple developer-team applications by name or bundle ID. The separate App IDs panel has been removed. This list does not depend on which apps are installed.
+4. Select the target application, then tap **Add Increased Memory Limit** to request `INCREASED_MEMORY_LIMIT` from Apple.
 5. **Re-sign and reinstall/refresh the target app in SideStore after enabling the capability.** The previously installed copy retains its old provisioning profile, so enabling the App ID alone does not change the installed app.
 6. Check the **newly signed target app**, not GetMoreRam, for the entitlement `com.apple.developer.kernel.increased-memory-limit` set to `true` in its signed entitlements/provisioning profile.
 
@@ -55,6 +55,12 @@ The ten alternate icon choices are real iOS app icons, not decorative UI placeho
 The ten image files committed under `GetMoreRam/Assets.xcassets` come from the exact user-supplied icon artwork. CI **does not regenerate or replace them with programmatically drawn substitutes**. Every release checks both 1024×1024 icon artwork and its associated Settings preview, and verifies that iOS registers all nine alternate icons. `scripts/generate_app_icons.swift` is a historical prototype and is not used to create shipping icons.
 
 
+## Automatic sideloaded app icons
+
+Memory automatically matches application bundle IDs against SideStore's official and community JSON catalogs and downloads their published `iconURL` artwork. This is **not** an App Store API lookup, nor does it enumerate locally installed apps. Matching icons are cached in GetMoreRam's application support directory and persist across launches. You can add other SideStore/AltStore JSON catalog URLs in **Settings → Sideload App Icons**; retrieval then happens automatically with no image importing.
+
+An Apple Developer App ID record contains an app name and bundle ID, **not** the original icon. An app that is not listed in any accessible sideload catalog cannot have its real artwork inferred from that record alone; it receives a neutral initials tile, not fabricated artwork. Exact bundle ID matches prevent displaying an unrelated icon. Only remote catalog feeds and matching image URLs are fetched, never full IPA archives.
+
 ## Simulator UI audit
 
-The `iPhone Simulator Screenshot Audit` workflow builds and launches the real Debug app using an Xcode 27 runner, then captures six screens: Home, App IDs, Memory, Settings, Client Identity and App Icon picker. Debug-only launch arguments select the genuine UI routes and skip saved-session network restoration for screenshots. No sample App IDs, entitlement results, login status or RAM figures are inserted. The separate unsigned IPA workflow still verifies the iOS 18.0 minimum and bundled alternate icons.
+The `iPhone Simulator Screenshot Audit` workflow builds and launches the real Debug app using an Xcode 27 runner, then captures five screens: Home, Memory, Settings, Client Identity and App Icon picker. Debug-only launch arguments select the genuine UI routes and skip saved-session network restoration for screenshots. No sample App IDs, entitlement results, login status or RAM figures are inserted. The separate unsigned IPA workflow still verifies the iOS 18.0 minimum and bundled alternate icons.
