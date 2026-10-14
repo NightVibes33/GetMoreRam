@@ -82,8 +82,10 @@ func paint(_ t: IconTheme) -> Data {
     }
     if t.orbit {
         let orbitPath = NSBezierPath(ovalIn: NSRect(x: 100, y: 375, width: 820, height: 270))
-        let orbitTransform = AffineTransform(translationByX: 512, byY: 512)
-            .rotated(byDegrees: -42).translatedBy(x: -512, y: -512)
+        var orbitTransform = AffineTransform()
+        orbitTransform.translate(x: 512, y: 512)
+        orbitTransform.rotate(byDegrees: -42)
+        orbitTransform.translate(x: -512, y: -512)
         orbitPath.transform(using: orbitTransform)
         t.glow.withAlphaComponent(0.8).setStroke()
         orbitPath.lineWidth = 25
