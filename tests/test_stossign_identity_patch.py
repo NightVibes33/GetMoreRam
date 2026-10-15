@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class DeveloperIdentityPatchTests(unittest.TestCase):
     def test_all_developer_request_dispatchers_use_selected_identity(self):
         fixture = ('"User-Agent": "Xcode",\n'
-                   '"X-Mme-Client-Info": session.anisetteData.deviceDescription,\n'
+                   '"X-MMe-Client-Info": session.anisetteData.deviceDescription,\n'
                    '"X-Xcode-Version": "27.0 (27A5218g)",\n') * len(METHODS)
         fixture += '\n    private init() {}\n'
         result = patch_source(fixture)
