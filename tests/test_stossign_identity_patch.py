@@ -28,6 +28,17 @@ class DeveloperIdentityPatchTests(unittest.TestCase):
             flow = (ROOT / '.github/workflows' / name).read_text()
             self.assertLess(flow.index('patch_stossign_api_response.py'), flow.index('patch_stossign_identity.py'))
 
+    def test_selected_preset_is_not_overridden_before_capability_update(self):
+        caller = (ROOT / 'GetMoreRam/SideStoreAuthentication.swift').read_text()
+        helper = (ROOT / 'GetMoreRam/OnDeviceAnisetteHelper.swift').read_text()
+        editor = (ROOT / 'GetMoreRam/AppIDViewModel.swift').read_text()
+        self.assertIn('deviceDescription: effectiveInfo', caller)
+        self.assertIn('defaults.string(forKey: "CustomClientInfo")', helper)
+        self.assertIn('defaults.string(forKey: "CustomUserAgent")', helper)
+        self.assertIn('let freshAnisette = try await AnisetteDataHelper.shared.getAnisetteData()', editor)
+        self.assertIn('session: freshSession', editor)
+        self.assertNotIn('Windows; 10.0', editor)
+
     def test_response_401_does_not_retry_mutation(self):
         patch = (ROOT / 'scripts/patch_stossign_api_response.py').read_text()
         self.assertIn('httpCode == 401', patch)
