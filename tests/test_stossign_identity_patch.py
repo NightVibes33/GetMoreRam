@@ -18,6 +18,7 @@ class DeveloperIdentityPatchTests(unittest.TestCase):
         self.assertIn('UserDefaults.standard.string(forKey: "CustomUserAgent")', result)
         self.assertIn('UserDefaults.standard.string(forKey: "CustomClientInfo")', result)
         self.assertIn('return session.anisetteData.deviceDescription', result)
+        self.assertIn('defaults.bool(forKey: "UseOnDeviceAnisette")', result)
         self.assertNotIn('"User-Agent": "Xcode"', result)
         with self.assertRaises(ValueError):
             patch_source(result)
